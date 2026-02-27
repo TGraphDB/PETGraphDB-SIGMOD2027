@@ -1,0 +1,145 @@
+#!/usr/bin/env groovy
+@Library('tgraph-demo-test') import main.groovy.JenkinsTGraphTest as JTT
+
+
+pipeline {
+    parameters {
+        string(name:'dataset', defaultValue: "energy", description: 'Datasets')
+        string(name:'data_size', defaultValue: "T.01", description: 'Temporal Property Data Size')
+        string(name:'db_name', defaultValue: 'TGK', description: 'DB Name')
+        string(name:'device', defaultValue: 'data', description: 'Device')
+        string(name:'compile', defaultValue: '', description: 'Module to Compile')
+        string(name:'debug', defaultValue: 'false')
+        string(name:'cleanup', defaultValue: 'yes')
+    }
+    agent {
+        label params.device
+    }
+    environment {
+        MILESTONE_NAME = JTT.milestoneName(params.dataset, params.data_size, params.db_name)
+        PGPASSWORD = "langduhua"
+        CONFIG_NEO4J_NO_LOG = 'nolog'
+        CONFIG_MEMTABLE_SIZE = 64
+        CONFIG_FBUFFER_SIZE = 64
+        DIR_CODE = JTT.dir('DIR_CODE', env.NODE_NAME)
+        DIR_BUILD = JTT.dir('DIR_BUILD', env.NODE_NAME)
+        DIR_ARTIFACT = JTT.dir('DIR_ARTIFACT', env.NODE_NAME)
+        DIR_MARIADB_DATA = JTT.dir('DIR_MARIADB_DATA', env.NODE_NAME)
+        MAVEN_OPTS='-Xmx4g -Xms1g'
+        JENKINS_ID = "${BUILD_NUMBER}"
+        MARK_TIME = JTT.timeNow()
+        DEVICE="${params.device}"
+    }
+    stages {
+        stage('Clean up'){
+            steps {
+                echo "Build on ${env.NODE_NAME}"
+                script{
+                    currentBuild.description = "${currentBuild.description==null?'':currentBuild.description} ${params.dataset}(${params.data_size})@${params.db_name} on ${env.NODE_NAME}"
+                    dir(DIR_CODE){
+                        if(params.compile!='' || currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause').size() > 0){//triggered by user manually
+                            JTT.codeSyncAndCompile(this, params.compile) //'tcypher', 'neo4j', 'tp'
+                        }
+                    }
+                    def retcode = JTT.ctrlDB(this, 'start', params.db_name)
+                    if(retcode==0 || retcode==2){
+                        echo "${env.NODE_NAME}: ${params.db_name} server ready."
+                    }else{
+                        error "Unable to start ${params.db_name} on ${env.NODE_NAME}"
+                    }
+                    dir("${DIR_CODE}\\demo-test"){
+                        def conf = readYaml(file:'tests.yml')
+                        echo "${conf.dbinfo}"
+                        withEnv(JTT.extendEnvList(conf.dbinfo, params.db_name)){
+                            echo "drop db ${MILESTONE_NAME}"
+                            JTT.dropDB(this, env.DB_TYPE, env.MILESTONE_NAME, env)
+                        }
+                    }
+                }
+            }
+        }
+        stage('Building') {
+            environment {
+                DB_PATH = JTT.dir('DIR_BUILD', env.NODE_NAME, env.MILESTONE_NAME) //for neo4j/tgraph
+                DATA_PATH = JTT.dir('DIR_DATA', env.NODE_NAME)
+                DATA_SIZE = "${params.data_size}"
+                DATASET = "${params.dataset}"
+                DB_NAME = "${params.db_name}"
+                MAVEN_OPTS="${JTT.opt('MAVEN_BUILD_OPTS', env.NODE_NAME)} -XX:CICompilerCount=3 -XX:ParallelGCThreads=6" // -XX:+UseG1GC -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005' //
+                MARK_TIME = JTT.timeNow()
+                DEVICE="${env.NODE_NAME}"
+            }
+            steps {
+                script {
+                    dir("${DIR_CODE}\\demo-test"){
+                        def conf = readYaml(file:'tests.yml')
+                        echo "${conf.dbinfo}"
+                        withEnv(JTT.extendEnvList(conf.dbinfo, params.db_name)){
+                            echo "${conf.datainfo}"
+                            withEnv(JTT.extendEnvList(conf.datainfo, params.dataset)){
+                                withEnv(['DB_HOST=localhost']){ //for sql dbs
+                                    echo "Milestone ${env.MILESTONE_NAME}@${env.DB_HOST}"
+                                    if(params.debug=='true') {
+                                        withEnv(["MAVEN_OPTS=${MAVEN_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"]){
+                                            bat "mvn -B exec:java -Dexec.mainClass=edu.buaa.common.benchmark.MilestoneBuilder -Dexec.cleanupDaemonThreads=false"
+                                        }
+                                    }else{
+                                        timestamps {
+                                            bat "mvn -B exec:java -Dexec.mainClass=edu.buaa.common.benchmark.MilestoneBuilder -Dexec.cleanupDaemonThreads=false"
+                                        }
+                                    }
+                                    bat "mvn -B exec:java -Dexec.mainClass=edu.buaa.utils.DBSpaceStatistic -Dexec.cleanupDaemonThreads=false"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage('Package Artifact') {
+            steps {
+                dir("${DIR_CODE}\\demo-test"){
+                    script{
+                        def conf = readYaml(file:'tests.yml')
+                        echo "${conf.dbinfo}"
+                        withEnv(JTT.extendEnvList(conf.dbinfo, params.db_name)){
+                            JTT.archiveMilestone(this, env.DB_TYPE, env.MILESTONE_NAME, env)
+                        }
+//                        JTT.archive(this, env.DIR_ARTIFACT, env.MILESTONE_NAME)
+                        // // notification
+                        // catchError(buildResult: 'SUCCESS', message: 'Fail to send notification', stageResult: 'UNSTABLE') {
+                        //     String jsonBody = writeJSON returnText: true, json: params //['key':'value',]
+                        //     httpRequest httpMode: "POST",
+                        //         contentType: 'APPLICATION_JSON',
+                        //         //customHeaders: [[name: "Token", value: "194e02db102e26cead5f6dea09c7c492581053fb"]],
+                        //         requestBody: jsonBody,
+                        //         url: 'https://api.hiflow.tencent.com/engine/webhook/31/1576135637549260801'
+                        // }
+                    }
+                }
+            }
+        }
+//        stage('Clear up workspace'){
+//            when {
+//                beforeAgent true
+//                expression { params.cleanup == 'yes' }
+//            }
+//            environment {
+//                DB_PATH = JTT.dir('DIR_BUILD', env.NODE_NAME, env.MILESTONE_NAME) //for neo4j/tgraph
+//            }
+//            steps {
+//                echo "delete files on ${env.NODE_NAME}/${env.DB_PATH}"
+//                bat "if exist ${DB_PATH} ( rmdir /q /s ${DB_PATH} )"
+//            }
+//        }
+    }
+    post{
+        always {
+            script {
+                echo "stoping ${params.db_name}..."
+                def retCode = JTT.ctrlDB(this, 'stop', params.db_name)
+                if(retCode!=0) echo "net stop return ${retCode}"
+            }
+        }
+    }
+}

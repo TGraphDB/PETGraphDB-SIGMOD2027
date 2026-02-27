@@ -1,0 +1,179 @@
+db_name: [ TGK, PG, MA, N1, N2 ] #
+dataset: [ traffic, energy, syn ] #
+data_size: [ 'T.all' ] #'T.01', 'T.1', 'T.5', 'T.9',
+query_distribution: [ snapshot, aggmax, aggdur, etpc, reachable, ehistory ] # r100update,
+query_cnt: [ 1000000 ] #, 3000, 200, 10, 1000
+query_param_set: [ normal ]
+max_connection_cnt: [ -1 ]
+
+phase:
+  generate_milestone: true
+  generate_benchmark: true
+  run_test: true
+  validate: true
+
+dbinfo:
+  key: ['db_type', 'db_host', 'db_port', 'class_data_import', 'class_client', 'class_server' ]
+  N1:
+    - neo4j
+    - ssworkstation
+    - 9833
+    - edu.buaa.batch.N1BulkLoad
+    - edu.buaa.client.NeoTGraphExecutorClient
+    - edu.buaa.server.system.Neo4jServer1
+  N2:
+    - neo4j
+    - ssworkstation
+    - 9866
+    - edu.buaa.batch.N2BulkLoad
+    - edu.buaa.client.NeoTGraphExecutorClient
+    - edu.buaa.server.Neo4jServer2
+  PG:
+    - postgresql
+    - zhworkstation
+    - 9876
+    - edu.buaa.batch.PGTimePoint
+    - edu.buaa.client.NeoTGraphExecutorClient
+    - edu.buaa.server.PostgreSQLServer
+  MA:
+    - mariadb
+    - zhworkstation
+    - 8765
+    - edu.buaa.batch.MATemporalTable
+    - edu.buaa.client.NeoTGraphExecutorClient
+    - edu.buaa.server.MariaDBServer
+  TGK:
+    - tgraph
+    - ssworkstation
+    - 8438
+    - edu.buaa.batch.TGBulkLoad
+    - edu.buaa.client.NeoTGraphExecutorClient
+    - edu.buaa.server.TGraphKernelServer
+  TGC:
+    - tgraph.combined
+    - ssworkstation
+    - 8440
+    - edu.buaa.batch.TGCBulkLoad
+    - edu.buaa.client.NeoTGraphExecutorClient
+    - edu.buaa.server.TGraphCombinedServer
+  TGS:
+    - tgraph.snappy
+    - ssworkstation
+    - 8441
+    - edu.buaa.batch.TGSBulkLoad
+    - edu.buaa.client.NeoTGraphExecutorClient
+    - edu.buaa.server.TGraphKernelSnappyServer
+  TGSB:
+    - tgraph.snappy
+    - ssworkstation
+    - 8444
+    - edu.buaa.batch.TGSBulkLoad
+    - edu.buaa.client.NeoTGraphExecutorClient
+    - edu.buaa.server.TGraphKernelBigLockSnappyServer
+  TGL:
+    - tgraph.tcypher
+    - ssworkstation
+    - 8442
+    - edu.buaa.batch.TGBulkLoad
+    - edu.buaa.client.TCypherExecutorClient
+    - edu.buaa.server.TCypherServer
+  TGLI:
+    - tgraph.tcypher.indexed
+    - ssworkstation
+    - 8443
+    - edu.buaa.batch.TGIBulkLoad
+    - edu.buaa.client.TCypherExecutorClient
+    - edu.buaa.server.TCypherServer
+  TGKI:
+    - tgraph.kernel.indexed
+    - client
+    - 8439
+    - edu.buaa.batch.TGIBulkLoad
+    - edu.buaa.client.NeoTGraphExecutorClient
+    - edu.buaa.server.TGraphKernelIndexServer
+
+datainfo:
+  key: [ 'class_data_gen', 'T.01', 'T.1', 'T.5', 'T.9', 'T.all' ]
+  energy:
+    - edu.buaa.dataset.EnergyWriteTxGenerator
+    - '20120101~20120105'
+    - '20120101~20120206'
+    - '20120101~20130701'
+    - '20120101~20141125'
+    - '20120101~20150101'
+  traffic:
+    - edu.buaa.dataset.TrafficWriteTxGenerator
+    - '0501~0503'
+    - '0501~0522'
+    - '0501~0716'
+    - '0501~1108'
+    - '0501~1201'
+  syn:
+    - edu.buaa.dataset.SynWriteTxGenerator
+    - '1~10_000_000'
+    - '1~100_000_000'
+    - '1~500_000_000'
+    - '1~900_000_000'
+    - '1~1_000_000_000'
+  syna:
+    - edu.buaa.dataset.SynWriteTxGenerator
+    - '1~20_000_000'
+  synb:
+    - edu.buaa.dataset.SynWriteTxGenerator
+    - '1~20_000_000'
+  sync:
+    - edu.buaa.dataset.SynWriteTxGenerator
+    - '1~20_000_000'
+  synd:
+    - edu.buaa.dataset.SynWriteTxGenerator
+    - '1~20_000_000'
+  syndd:
+    - edu.buaa.dataset.SynWriteTxGenerator
+    - '1~20_000_000'
+  synddd:
+    - edu.buaa.dataset.SynWriteTxGenerator
+    - '1~20_000_000'
+  syndf:
+    - edu.buaa.dataset.SynWriteTxGenerator
+    - '1~20_000_000'
+  syndff:
+    - edu.buaa.dataset.SynWriteTxGenerator
+    - '1~20_000_000'
+  syne:
+    - edu.buaa.dataset.SynWriteTxGenerator
+    - '1~20_000_000'
+  syneeee:
+    - edu.buaa.dataset.SynWriteTxGenerator
+    - '1~20_000_000'
+  synf:
+    - edu.buaa.dataset.SynWriteTxGenerator
+    - '1~20_000_000'
+  synfm:
+    - edu.buaa.dataset.SynWriteTxGenerator
+    - '1~20_000_000'
+  synff:
+    - edu.buaa.dataset.SynWriteTxGenerator
+    - '1~20_000_000'
+
+queryinfo:
+  key: [ rq_distribution ] #append, update, ehistory, snapshot, aggmax, aggdur, etpc, reachable
+  ehistory: [ '0,0,100,0,0,0,0,0' ]
+  snapshot: [ '0,0,0,100,0,0,0,0' ]
+#  aggmax: [ '0,0,0,0,100,0,0,0' ]
+  aggdur: [ '0,0,0,0,0,100,0,0' ]
+  etpc: [ '0,0,0,0,0,0,100,0' ]
+  reachable: [ '0,0,0,0,0,0,0,100' ]
+  append: [ '100,0,0,0,0,0,0,0' ]
+  update: [ '0,100,0,0,0,0,0,0' ]
+  oltp: [ '25,25,50,0,0,0,0,0' ]
+  olap: [ '0, 0, 20, 20, 20, 0, 20, 20' ]
+  htap: [ '40, 5, 35, 5, 5, 0, 5, 5' ]
+  r100: [ '0, 0, 10, 15, 10, 0, 10, 55' ]
+#  warmup: [ '0,0, 50, 10, 10, 10, 10, 10' ]
+#  validate: [ '0,0,25,15,15,15,15,15' ]
+
+
+
+paraminfo:
+  key: [ rq_append_tx_cnt, rq_update_tx_cnt ]
+  normal: [ 100, 100, ]

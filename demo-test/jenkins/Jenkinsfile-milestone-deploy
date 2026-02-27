@@ -1,0 +1,54 @@
+#!/usr/bin/env groovy
+@Library('tgraph-demo-test') import main.groovy.JenkinsTGraphTest
+
+pipeline {
+    agent none
+    parameters {
+        string(name: 'target_host', defaultValue: "data")
+        string(name: 'dbtype', defaultValue: "neo4j")
+        string(name: 'milestone', defaultValue: 'm_energy_n1_all')
+    }
+    environment {
+        PGPASSWORD = "langduhua"
+        MARK_TIME = JenkinsTGraphTest.timeNow()
+        DEVICE="${params.target_host}"
+
+    }
+    stages {
+        stage('Deploy milestone') {
+            agent {
+                label params.target_host
+            }
+            environment {
+                DIR_MARIADB_DATA = JenkinsTGraphTest.dir('DIR_MARIADB_DATA', env.NODE_NAME)
+                DIR_BUILD = JenkinsTGraphTest.dir('DIR_BUILD', env.NODE_NAME)
+                DIR_WORKSPACE = JenkinsTGraphTest.dir('DIR_WORKSPACE', env.NODE_NAME)
+                DIR_ARTIFACT = JenkinsTGraphTest.dir('DIR_ARTIFACT', env.NODE_NAME)
+            }
+            steps {
+                script {
+                    def desp = "deploy ${params.milestone}@${params.target_host}(${params.dbtype})"
+                    currentBuild.description = desp
+                    echo desp
+                    JenkinsTGraphTest.deploy2hdd(this, env, params.dbtype, params.milestone)
+                }
+            }
+        }
+        // stage('Space Statistic'){
+        //     agent {
+        //         label params.target_host
+        //     }
+        //     environment {
+        //         DIR_CODE = JenkinsTGraphTest.dir('DIR_CODE', env.NODE_NAME)
+        //         DIR_BUILD = JenkinsTGraphTest.dir('DIR_BUILD', env.NODE_NAME)
+        //     }
+        //     steps {
+        //         script {
+        //             dir("${DIR_CODE}\\demo-test"){
+        //                 JenkinsTGraphTest.dbSpaceCalc(this, params.dbtype, params.target_host, params.milestone)
+        //             }
+        //         }
+        //     }
+        // }
+    }
+}

@@ -1,0 +1,34 @@
+dist: trusty
+sudo: false
+language: java
+matrix:
+  include:
+    - os: linux
+      jdk: oraclejdk8
+
+addons:
+  apt:
+    update: true
+    packages:
+    - debhelper
+    - devscripts
+    - dos2unix
+    - dpkg
+    - make
+    - xmlstarlet
+    - graphviz
+    - nodejs-legacy
+    - npm
+    - rpm
+    - unzip
+
+cache:
+  directories:
+    - $HOME/.m2
+    - $HOME/test-data
+
+install:
+  - mvn install  -DskipTests=true  -Dlicense.skip=true  -Dlicensing.skip=true  -Dmaven.javadoc.skip=true  -B
+
+script:
+  - mvn test -B #echo "tests are skipped" #

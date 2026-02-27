@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+verify_ssl = true
+name = "pip_conf_index_global"
+
+[packages]
+streamlit = "1.39.0"
+streamlit-table-select-cell = "0.3.4"
+matplotlib = "3.9.2"
+api4jenkins = "2.0.3"
+aliyun-log-python-sdk = "0.9.12"
+psycopg2 = "2.9.10"
+Flask = "3.1.0"
+streamlit-aggrid = "1.0.5"
+streamlit-autorefresh = "1.0.1"
+seaborn = "0.13.2"
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"

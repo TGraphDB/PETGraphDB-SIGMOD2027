@@ -1,0 +1,140 @@
+dataset: energy
+node:
+  name: [ u_sid, name, country, voltage, latitude, longitude]
+  type: [ str, str, str, int, float, float]
+node_tp:
+  name:
+  - load_signal
+  - solar_cosmo_p
+  - solar_cosmo_u
+  - solar_ecmwf_p
+  - solar_ecmwf_u
+  - wind_cosmo_p
+  - wind_cosmo_u
+  - wind_ecmwf_p
+  - wind_ecmwf_u
+  type: [ float, float, float, float, float, float, float, float, float ]
+rel:
+  name: [ u_sid, x, y, r_limit, r_length ]
+  type: [ str, float, float, int, float ]
+---
+dataset: traffic
+node:
+  name: [ u_sid, name ]
+  type: [ str, str ]
+rel:
+  name: [ u_sid, angle, r_type, r_length ]
+  type: [ str, int, int, int ]
+rel_tp:
+  name: [ travel_time, full_status, segment_cnt ]
+  type: [ int, int, int ]
+---
+dataset: syn
+node:
+  name: [ u_sid ]
+  type: [ str ]
+rel:
+  name: [ u_sid ]
+  type: [ str ]
+node_tp:
+  name: [ ntpi1, ntpf2, ntpi3 ]
+  type: [ int, float, int ]
+rel_tp:
+  name: [ rtpi1 ] # 时态属性名
+  type: [ int ] # 时态属性类型
+---
+dataset: syna
+node: {name: [ u_sid ], type: [ str ]}
+rel: {name: [ u_sid ], type: [ str ]}
+node_tp: {name: [ ntpi1, ntpf2, ntpi3 ], type: [ int, float, int ]}
+---
+dataset: synb
+node: {name: [ u_sid ], type: [ str ]}
+rel: {name: [ u_sid ], type: [ str ]}
+node_tp: {name: [ ntpi1, ntpf2, ntpi3 ], type: [ int, float, int ]}
+---
+dataset: sync
+node: {name: [ u_sid ], type: [ str ]}
+rel: {name: [ u_sid ], type: [ str ]}
+node_tp: {name: [ ntpi1, ntpf2, ntpi3 ], type: [ int, float, int ]}
+---
+dataset: synd
+node: {name: [ u_sid ], type: [ str ]}
+rel: {name: [ u_sid ], type: [ str ]}
+node_tp: {name: [ ntpi1, ntpf2, ntpi3 ], type: [ int, float, int ]}
+---
+dataset: syndd
+node: {name: [ u_sid ], type: [ str ]}
+rel: {name: [ u_sid ], type: [ str ]}
+node_tp: {name: [ ntpi1, ntpf2, ntpi3 ], type: [ int, float, int ]}
+---
+dataset: synddd
+node: {name: [ u_sid ], type: [ str ]}
+rel: {name: [ u_sid ], type: [ str ]}
+node_tp: {name: [ ntpi1, ntpf2, ntpi3 ], type: [ int, float, int ]}
+---
+dataset: syndf
+node: {name: [ u_sid ], type: [ str ]}
+rel: {name: [ u_sid ], type: [ str ]}
+node_tp: {name: [ i1, f2, i3 ], type: [ int, float, int ]}
+---
+dataset: syndff
+node: {name: [ u_sid ], type: [ str ]}
+rel: {name: [ u_sid ], type: [ str ]}
+node_tp: {name: [ i1, f2, i3 ], type: [ int, float, int ]}
+---
+dataset: syne
+node: {name: [ u_sid ], type: [ str ]}
+rel: {name: [ u_sid ], type: [ str ]}
+node_tp: {name: [ ntpi1,ntpf2,ntpi3, ntpi4,ntpf5,ntpi6, ntpi7,ntpf8,ntpi9 ], type: [ int,float,int,int,float,int,int,float,int ]}
+---
+dataset: syneeee
+node: {name: [ u_sid ], type: [ str ]}
+rel: {name: [ u_sid ], type: [ str ]}
+node_tp: {name: [ i1,f2,i3, i4,f5,i6, i7,f8,i9,i10,f11,i12,i13,f14,i15,i16,f17,i18,i19,f20,i21 ], type: [ int,float,int,int,float,int,int,float,int,int,float,int,int,float,int,int,float,int, int,float,int]}
+---
+dataset: synf
+node: {name: [ u_sid ], type: [ str ]}
+rel: {name: [ u_sid ], type: [ str ]}
+node_tp: {name: [ ntpi1, ntpf2, ntpi3 ], type: [ int, float, int ]}
+---
+dataset: synfm
+node: {name: [ u_sid ], type: [ str ]}
+rel: {name: [ u_sid ], type: [ str ]}
+node_tp: {name: [ i1, f2, i3 ], type: [ int, float, int ]}
+---
+dataset: synff
+node: {name: [ u_sid ], type: [ str ]}
+rel: {name: [ u_sid ], type: [ str ]}
+node_tp: {name: [ i1, f2, i3 ], type: [ int, float, int ]}
+#dataset: synWangYue
+#node:
+#  name: [ u_sid ]
+#  type: [ str ]
+#rel:
+#  name: [ u_sid ]
+#  type: [ str ]
+#node_tp:
+#  update: 0.0008
+#  prop: [ 0.9, 0.8, 0.6, 0.3, 0.2, 0.1, 0.75, 0.85, 0.35, 0.4, 0.25, 0.9, 0.8, 0.6]
+#  name: [ tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14 ]
+#  type: [ int, float, int, int, float, float, float, int, int, float, int, float, int, float ]
+#rel_tp:
+#  update: 0.0005
+#  prop: [ 0.9, 0.8, 0.7, 0.3, 0.2, 0.5 ]
+#  name: [ tp1, tp2, tp3, tp4, tp5, tp6 ]
+#  type: [ int, int, float, float, int, float ]
+#---
+#dataset: syn1
+#node:
+#  name: [ u_sid ]
+#  type: [ str ]
+#rel:
+#  name: [ u_sid ]
+#  type: [ str ]
+#node_tp:
+#  name: [ tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8 ]
+#  type: [ int, float, int, int, float, float, float, int ]
+#rel_tp:
+#  name: [ tp1, tp2 ] # 时态属性名
+#  type: [ int, float ] # 时态属性类型

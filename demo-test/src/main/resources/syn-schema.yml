@@ -1,0 +1,20 @@
+dataset: syn
+start: 1 #开始时间,mariadb timestamp支持的最小值为1
+end: 1_000_000_000 # 结束时间
+repeat: true #若没有属性值更新，则重复上一次属性值（false则忽略）
+node:
+  cnt: 40_0000 #节点数
+  step: 1_0000
+  delay: 4000
+  eupdate: 0.05 #
+  name: [ ntpi1, ntpf2, ntpi3 ]
+  type: [ int, float, int ]
+  update: [ 0.2, 0.8, 0.02 ]
+rel:
+  cnt: 1000_0000 #边数
+  step: 1_0000 # 每条边上时态属性更新的时间间隔
+  delay: 4000 # 每条边更新时间相对基准时间的延迟
+  eupdate: 0.002 # 每个时间点更新的点/边比例
+  name: [ rtpi1 ] # 时态属性名
+  type: [ int ] # 时态属性类型
+  update: [ 0.5 ] # 每次更新时，属性值相对上一次值发生改变的概率

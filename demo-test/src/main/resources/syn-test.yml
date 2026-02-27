@@ -1,0 +1,27 @@
+{id: a, cnt: 40_0000, step: 1_0000, delay: 4000,  eupdate: 0.05, update: [ 0.02, 0.2, 0.8 ], type: ifi } #
+--- # b:无冗余信息
+{id: b, cnt: 40_0000, step: 1_0000, delay: 4000,  eupdate: 0.05, update: [ 1.0, 1.0, 1.0 ], type: ifi } #
+--- # c：更新比例很大
+{id: c, cnt: 40_0000, step: 1_0000, delay: 4000,  eupdate: 0.5, update: [ 0.02, 0.2, 0.8 ], type: ifi } #
+--- # d:时间点很少400个
+{id: d, cnt: 40_0000, step: 5_0000, delay: 4000,  eupdate: 0.05, update: [ 0.02, 0.2, 0.8 ], type: ifi } #
+--- # dd:时间点很少200个
+{id: dd, cnt: 40_0000, step: 10_0000, delay: 4000,  eupdate: 0.05, update: [ 0.02, 0.2, 0.8 ], type: ifi } #
+--- # ddd:时间点很少20个
+{id: ddd, cnt: 40_0000, step: 100_0000, delay: 4000,  eupdate: 0.05, update: [ 0.02, 0.2, 0.8 ], type: ifi } #
+--- # df:时间点200个，节点数x10
+{id: df, cnt: 400_0000, step: 5_0000, delay: 4000,  eupdate: 0.05, update: [ 0.02, 0.2, 0.8 ], type: ifi } #
+--- # df:时间点200个，节点数x50
+{id: dff, cnt: 2000_0000, step: 5_0000, delay: 4000,  eupdate: 0.05, update: [ 0.02, 0.2, 0.8 ], type: ifi } #
+--- # e:属性数很多
+{id: dfff, cnt: 2_0000_0000, step: 5_0000, delay: 4000,  eupdate: 0.05, update: [ 0.02, 0.2, 0.8 ], type: ifi } #
+--- # e:属性数很多
+{id: e, cnt: 40_0000, step: 1_0000, delay: 4000,  eupdate: 0.05, update: [ 0.02,0.2,0.8, 0.02,0.2,0.8, 0.02,0.2,0.8  ], type: ifiifiifi } #
+--- # e:属性数很多
+{id: eeee, cnt: 40_0000, step: 1_0000, delay: 4000, eupdate: 0.05, update: [ 0.02,0.2,0.8, 0.02,0.2,0.8, 0.02,0.2,0.8, 0.02,0.2,0.8, 0.02,0.2,0.8, 0.02,0.2,0.8, 0.02,0.2,0.8 ], type: ifiifiifiifiifiifiifi  } #
+--- # f：节点多x10
+{id: f, cnt: 400_0000, step: 1_0000, delay: 4000,  eupdate: 0.05, update: [ 0.02, 0.2, 0.8 ], type: ifi } #
+#--- # ff：节点多x50
+#{id: fm, cnt: 4_0000, step: 1_0000, delay: 4000,  eupdate: 0.05, update: [ 0.02, 0.2, 0.8 ], type: ifi } #
+--- # ff：节点多x50
+{id: ff, cnt: 2000_0000, step: 1_0000, delay: 4000,  eupdate: 0.05, update: [ 0.02, 0.2, 0.8 ], type: ifi } #

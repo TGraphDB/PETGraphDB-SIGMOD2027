@@ -1,0 +1,142 @@
+//测试
+@Library('tgraph-demo-test') import main.groovy.JenkinsTGraphTest as JTT
+
+
+pipeline {
+    //在每个stage中指定使用节点
+    agent none
+    parameters {
+        string(name:'code2compile', defaultValue: 'test', description: 'Available options: tcypher,neo4j,tp,test')  //
+    }
+    environment {
+        DIR_WORKSPACE = "G:\\jenkins-workspace"
+        DIR_ARTIFACT = "D:\\tgraph\\jenkins"
+        DIR_DATA = "D:\\tgraph\\data"
+    }
+    stages {
+        stage('Compile') {
+            parallel {
+                stage('Master') {
+                    agent { label 'master' }
+                    steps {
+                        dir(JTT.dir('DIR_CODE', env.NODE_NAME)){
+                            script{
+                                currentBuild.description = "recompile: ${params.code2compile}"
+                                JTT.codeSyncAndCompile(this, params.code2compile) //'tcypher', 'neo4j', 'tp' 'test'
+                            }
+                        }
+                    }
+                }
+                stage('SS') {
+                    agent { label 'ssworkstation' }
+                    steps {
+                        script{
+                            dir(JTT.dir('DIR_CODE', env.NODE_NAME)) {
+                                JTT.codeSyncAndCompile(this, params.code2compile) //'tcypher', 'neo4j', 'tp'
+                            }
+                        }
+                    }
+                }
+                stage('ZH') {
+                    agent { label 'zhworkstation' }
+                    steps {
+                        script{
+                            dir(JTT.dir('DIR_CODE', env.NODE_NAME)) {
+                                JTT.codeSyncAndCompile(this, params.code2compile) //'tcypher', 'neo4j', 'tp'
+                            }
+                        }
+                    }
+                }
+                stage('Data') {
+                    agent { label 'data' }
+                    steps {
+                        script{
+                            dir(JTT.dir('DIR_CODE', env.NODE_NAME)) {
+                                JTT.codeSyncAndCompile(this, params.code2compile) //'tcypher', 'neo4j', 'tp'
+                            }
+                        }
+                    }
+                }
+                // stage('HSC') {
+                //     agent { label 'hsc' }
+                //     steps {
+                //         script{
+                //             dir(JTT.dir('DIR_CODE', env.NODE_NAME)) {
+                //                 JTT.codeSyncAndCompile(this, params.code2compile) //'tcypher', 'neo4j', 'tp'
+                //             }
+                //         }
+                //     }
+                // }
+                // stage('ZZY') {
+                //     agent { label 'zzy' }
+                //     steps {
+                //         script{
+                //             dir(JTT.dir('DIR_CODE', env.NODE_NAME)) {
+                //                 JTT.codeSyncAndCompile(this, params.code2compile) //'tcypher', 'neo4j', 'tp'
+                //             }
+                //         }
+                //     }
+                // }
+            }
+        }
+//        stage('Generate Benchmark') {
+//            agent { label 'master' }
+//            steps {
+//                build job: 'test', parameters: [
+//                    string(name: 'db_host', value: "data"),
+//                    string(name: 'benchmark_name', value: "${BENCHMARK_NAME}"),
+//                    string(name: 'milestone', value: mName), //DATA_SIZE
+//                    string(name: 'max_connection', value: params.max_connection),
+//                    string(name: 'timeout', value: params.timeout)
+//                ]
+//            }
+//        }
+
+        // stage('Generate Benchmark') {
+        //     agent { label 'master' }
+        //     steps {
+        //         dir("${env.DIR_WORKSPACE}\\demo-test") {
+        //             script {
+        //                 def configure = readYaml(file:'tests.yml')
+        //                 def self = this
+        //                 JenkinsTGraphTest.loopByKey(conf:configure, keys: ['query_param_set', 'data_size', 'query_distribution', 'query_cnt', 'dataset'], body: { p, conf ->
+        //                     println(p)
+        //                     String bName = JenkinsTGraphTest.benchmarkName(p['dataset'], p['data_size'], p['query_cnt'], p['query_distribution'])
+        //                     if(JenkinsTGraphTest.fExist(env.DIR_ARTIFACT, bName)) {
+        //                         echo "${bName} exists, skip."
+        //                     }else{
+        //                         JenkinsTGraphTest.createDirIfNotExist("${env.DIR_ARTIFACT}\\${bName}")
+        //                         p['benchmark_full_path'] = "${env.DIR_ARTIFACT}\\${bName}\\benchmark.json"
+        //                         p['data_full_path'] = "${env.DIR_DATA}\\${p['dataset']}"
+        //                         withEnv(JenkinsTGraphTest.extendEnvList(conf.datainfo, p['dataset'])){
+        //                             withEnv(JenkinsTGraphTest.extendEnvList(conf['queryinfo'], p['query_distribution'])){
+        //                                 withEnv(JenkinsTGraphTest.extendEnvList(conf['paraminfo'], p['query_param_set'])){
+        //                                     withEnv(JenkinsTGraphTest.toEnvKVList(p)){
+        //                                         bat "mvn -B exec:java -Dexec.mainClass=edu.buaa.common.benchmark.BenchmarkBuilder -Dexec.cleanupDaemonThreads=false"
+        //                                     }
+        //                                 }
+        //                             }
+        //                         }
+        //                         JenkinsTGraphTest.archive(self, "${env.DIR_ARTIFACT}", "${bName}\\benchmark.json")
+        //                     }
+        //                 })
+        //             }
+        //         }
+        //     }
+        // }
+        // stage('Run Benchmark') {
+        //     agent { label 'master' }
+        //     steps {
+        //         dir("${env.DIR_WORKSPACE}\\demo-test") {
+        //             script {
+        //                 def self = this
+        //                 JenkinsTGraphTest.loopByKey(conf: readYaml(file:'tests.yml'), keys: ['query_param_set', 'max_connection_cnt', 'query_cnt', 'query_distribution', 'data_size', 'dataset'], body: { p, conf ->
+        //                     println(p)
+        //                     JenkinsTGraphTest.parallelTestDB(script: self, params: p, dbList: conf['db_name'], conf: conf)
+        //                 })
+        //             }
+        //         }
+        //     }
+        // }
+    }
+}
