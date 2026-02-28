@@ -1,23 +1,17 @@
 # PETGraphDB (VLDB 2026)
 
 PETGraphDB is a temporal graph database system designed for managing and querying time-evolving graph data.  
-This repository includes the TGraph 4.4 codebase (derived from Neo4j 4.4) and its custom temporal storage engine.
+This repository includes the PETGraphDB codebase (derived from Neo4j 4.4) and its custom temporal storage engine.
 
-## Reproducible Build Guide for TGraph4.4
+## Reproducible Build Guide for PETGraphDB
 
 This guide documents how to bootstrap from source, package all required modules into the local Maven repository.
 
-### Objective
-
-From a clean source-only setup, complete the following tasks:
-
-1. Package and install TGraph dependencies into the local Maven repository.
-2. Execute one test case in IntelliJ IDEA.
-
 ### Source Repositories
 
-- `temporal-storage`: custom temporal storage engine module used by TGraph.
-- `temporal-neo4j-4.4`: TGraph 4.4 implementation built by modifying Neo4j 4.4, with `temporal-storage` as a dependency.
+- `temporal-storage`: custom temporal storage engine module used by PETGraphDB.
+- `temporal-neo4j-4.4`: PETGraphDB implementation built by modifying Neo4j 4.4, with `temporal-storage` as a dependency.
+- `demo-test`: PETGraphDB benchmark and testing project, including dataset adapters, benchmark workloads, client/server adapters, and automation scripts for reproducible performance evaluation.
 
 ### 0. Toolchain Requirements
 
@@ -36,7 +30,7 @@ mvn -B clean install -DskipTests
 
 This step cleans, compiles, packages, and installs the module into the local Maven repository while skipping tests.
 
-### 2. Install the TGraph 4.4 Module
+### 2. Install the PETGraphDB Module
 
 Run the following command at the root directory of `temporal-neo4j-4.4`:
 
@@ -45,8 +39,6 @@ mvn -B clean install -DskipTests -Dcheckstyle.skip -Dlicense.skip=true -Dlicensi
 ```
 
 The additional `-D` flags bypass Neo4j-specific style/license validations that are not required for local packaging reproducibility.
-
-After completion, other local projects can resolve TGraph artifacts from the local Maven repository, and IDEA runtime classpath/resource issues are typically eliminated.
 
 ### 3. Configure IntelliJ IDEA (Java and Scala)
 
@@ -61,4 +53,4 @@ After completion, other local projects can resolve TGraph artifacts from the loc
 
 3. **Import `temporal-storage` as an IDEA module (recommended)**:
 	 - If omitted, IDEA can still resolve the installed artifact from local Maven.
-	 - If included as a module, direct source-level debugging across storage and TGraph code becomes possible.
+	 - If included as a module, direct source-level debugging across storage and PETGraphDB code becomes possible.

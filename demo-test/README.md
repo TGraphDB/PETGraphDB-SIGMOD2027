@@ -1,6 +1,21 @@
 # PETGraphDB VLDB 2026
 > PETGraphDB is a database system designed for managing temporal graph data. 
 
+## Purpose of `demo-test`
+
+`demo-test` is the **testing and benchmarking module** for PETGraphDB.
+Its primary role is to run controlled experiments and compare PETGraphDB with other database systems under the same workload, rather than to provide PETGraphDB core database engine code.
+
+Specifically, this module is used to:
+
+- Prepare and load temporal graph datasets for repeatable experiments.
+- Execute PETGraphDB application workloads (read, write, and analytical transactions).
+- Collect execution metrics such as latency, throughput/concurrency, and storage-related indicators.
+- Run side-by-side evaluations against comparison systems (Neo4j, PostgreSQL, MariaDB) under aligned settings.
+- Support automated experiment orchestration through Docker/Jenkins-related scripts.
+
+In short, if `temporal-storage` and `temporal-neo4j-4.4` implement PETGraphDB itself, `demo-test` is the project that **tests and validates PETGraphDB performance and behavior**.
+
 We develop a set of experiments to evaluate the performance of PETGraphDB in typical scenarios of temporal property graph data, mainly from three aspects: 
 disk space utilization, latency of read and write operations, and transaction throughput and concurrency.
 
