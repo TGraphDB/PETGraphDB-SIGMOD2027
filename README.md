@@ -1,56 +1,95 @@
 # PETGraphDB (VLDB 2026)
 
-PETGraphDB is a temporal graph database system designed for managing and querying time-evolving graph data.  
-This repository includes the PETGraphDB codebase (derived from Neo4j 4.4) and its custom temporal storage engine.
+## Description
 
-## Reproducible Build Guide for PETGraphDB
+PETGraphDB is a data management system specifically designed for Property Evolution Temporal Graph (PETG) data. Built on top of Neo4j, it adopts a valid-time temporal property graph data model to facilitate intuitive data modeling while supporting ACID features with transactions. Unlike traditional systems that treat topological changes and property evolution identically, PETGraphDB addresses scenarios where property values change frequently while the graph topology remains relatively stable.
 
-This guide documents how to bootstrap from source, package all required modules into the local Maven repository.
+## Contributions
+
+* **Native Valid-Time Support:** Provides native support for valid-time PETG data while preserving full ACID guarantees.
+
+
+* **Space-Efficient Storage:** Introduces the Temporal Interval Merge Tree (TIM-Tree), a storage engine optimized specifically for entity-history queries and append-intensive workloads, effectively eliminating data redundancy.
+
+
+* **High Transaction Throughput:** Features a fine-grained, multi-level locking mechanism designed to reduce unnecessary contention and maximize concurrent transaction throughput.
+
+
+* **Backward Compatibility:** Fully backward compatible with the widely used property graph data model, enabling users to manage non-temporal Neo4j instances seamlessly.
+
+
+* **TCypher Query Language:** Provides a high-level declarative query language extended from Cypher, minimizing the learning curve for manipulating temporal graphs.
+
+
+## Getting Started: Reproducible Build Guide
+
+This guide documents how to bootstrap from source and package all required modules into the local Maven repository.
 
 ### Source Repositories
 
-- `temporal-storage`: custom temporal storage engine module used by PETGraphDB.
-- `temporal-neo4j-4.4`: PETGraphDB implementation built by modifying Neo4j 4.4, with `temporal-storage` as a dependency.
-- `demo-test`: PETGraphDB benchmark and testing project, including dataset adapters, benchmark workloads, client/server adapters, and automation scripts for reproducible performance evaluation.
+* `temporal-storage`: The custom temporal storage engine module (TIM-Tree) used by PETGraphDB.
+* `temporal-neo4j-4.4`: The PETGraphDB implementation built by modifying Neo4j 4.4, with `temporal-storage` as a core dependency.
+* `demo-test`: The PETGraphDB benchmark and testing project, including dataset adapters, benchmark workloads, and automation scripts.
 
-### 0. Toolchain Requirements
+### Toolchain Requirements
 
-- **IntelliJ IDEA**: 2022.3.2 (Professional).
-	- Newer versions such as 2025.1.1 may trigger compatibility issues.
-- **Maven**: IntelliJ embedded Maven 3.8.1 (or equivalent command-line Maven).
-- **JDK**: Java 11 (Oracle/OpenJDK 11 recommended).
+* **IntelliJ IDEA**: 2022.3.2 (Professional). Newer versions (e.g., 2025.1.1) may trigger compatibility issues.
+* **Maven**: IntelliJ embedded Maven 3.8.1 (or equivalent command-line Maven).
+* **JDK**: Java 11 (Oracle/OpenJDK 11 recommended).
 
-### 1. Install the temporal-storage Module
+### Compile and Build
 
+**1. Install the `temporal-storage` Module**
 Run the following command at the root directory of `temporal-storage`:
 
 ```bash
 mvn -B clean install -DskipTests
 ```
 
-This step cleans, compiles, packages, and installs the module into the local Maven repository while skipping tests.
+This step cleans, compiles, packages, and installs the module into the local Maven repository.
 
-### 2. Install the PETGraphDB Module
-
+**2. Install the PETGraphDB Module**
 Run the following command at the root directory of `temporal-neo4j-4.4`:
 
 ```bash
 mvn -B clean install -DskipTests -Dcheckstyle.skip -Dlicense.skip=true -Dlicensing.skip=true -Doverwrite
 ```
 
-The additional `-D` flags bypass Neo4j-specific style/license validations that are not required for local packaging reproducibility.
+The additional `-D` flags bypass Neo4j-specific style/license validations that are not required for local packaging.
 
-### 3. Configure IntelliJ IDEA (Java and Scala)
+**3. Configure IntelliJ IDEA (Java and Scala)**
 
-1. **Set project JDK to Java 11**:  
-	 `File -> Settings -> Project Structure -> Project -> SDK = Java 11`.
+* **Set project JDK:** `File -> Settings -> Project Structure -> Project -> SDK = Java 11`.
+* **Configure Scala SDK 2.12.13:** Install the Scala plugin from the IDEA marketplace, restart, and configure the global library (`File -> Settings -> Project Structure -> Global Library -> + -> Scala SDK -> 2.12.13`).
+* **Import `temporal-storage`:** Import it as an IDEA module to enable direct source-level debugging across the storage engine and PETGraphDB code.
 
-2. **Install and configure Scala SDK 2.12.13**:
-	 - Install the Scala plugin from IDEA marketplace.
-	 - Restart IDEA.
-	 - Configure global Scala library:  
-		 `File -> Settings -> Project Structure -> Global Library -> + -> Scala SDK -> 2.12.13`.
+## Benchmarks & Queries
 
-3. **Import `temporal-storage` as an IDEA module (recommended)**:
-	 - If omitted, IDEA can still resolve the installed artifact from local Maven.
-	 - If included as a module, direct source-level debugging across storage and PETGraphDB code becomes possible.
+The system supports testing against typical PETG data management scenarios using real-world and synthetic datasets (Energy, Traffic, and SYN).
+
+It natively supports the execution of complex temporal operations, including:
+
+* **Read Operations:** Entity-History, Snapshot, Graph Aggregate Temporal Property (GATP), and Entity Temporal Property Condition (ETPC) queries.
+
+
+* **Write Operations:** Update and Append.
+
+
+* **Analytical Queries:** Reachable Area calculations for temporal road graphs.
+
+
+
+## PETGraphDB Implementation
+
+PETGraphDB consists of two main components ( Details of our concept can be found in our [paper](https://arxiv.org/abs/2512.05417) ): the query language processor and the database kernel. The database kernel provides comprehensive temporal graph data management and transactional capabilities accessible through Java APIs. The query language processor handles TCypher queries , accessing the database kernel for execution.
+
+* **Storage Engine (TIM-Tree):** Data items are partitioned and ordered first by property, and subsequently by time, effectively addressing data access skew. The engine employs an "export/merge" batch write process, buffering updates in a Global Memtable before periodically merging them with on-disk SSTables.
+
+
+* **Redundancy Reduction:** For continuously changing properties, the system omits the end time of intervals, deriving it from subsequent data items, and applies Snappy prefix compression to disk files.
+
+
+* **Transaction Management:** Neo4j's transaction pipelines are refactored to support temporal data structures in the memory buffer before committing, ensuring Atomicity, Consistency, Isolation, and Durability.
+
+
+* **Locking Mechanism:** Extends Neo4j's entity-level locks with temporal-level shared and exclusive locks, allowing transactions that access the same entity but disjoint time ranges to execute concurrently. Deadlocks are managed using a wait-for graph detection approach.
