@@ -33,8 +33,7 @@ This guide documents how to bootstrap from source and package all required modul
 
 ### Toolchain Requirements
 
-* **IntelliJ IDEA**: 2022.3.2 (Professional). Newer versions (e.g., 2025.1.1) may trigger compatibility issues.
-* **Maven**: IntelliJ embedded Maven 3.8.1 (or equivalent command-line Maven).
+* **Maven**: Maven (version between 3.8.1 and 3.9.9).
 * **JDK**: Java 11 (Oracle/OpenJDK 11 recommended).
 
 ### Compile and Build
@@ -57,27 +56,22 @@ mvn -B clean install -DskipTests -Dcheckstyle.skip -Dlicense.skip=true -Dlicensi
 
 The additional `-D` flags bypass Neo4j-specific style/license validations that are not required for local packaging.
 
-**3. Configure IntelliJ IDEA (Java and Scala)**
+**3. Install the demo-test Module**
+Run the following command at the root directory of `demo-test`:
 
-* **Set project JDK:** `File -> Settings -> Project Structure -> Project -> SDK = Java 11`.
-* **Configure Scala SDK 2.12.13:** Install the Scala plugin from the IDEA marketplace, restart, and configure the global library (`File -> Settings -> Project Structure -> Global Library -> + -> Scala SDK -> 2.12.13`).
-* **Import `temporal-storage`:** Import it as an IDEA module to enable direct source-level debugging across the storage engine and PETGraphDB code.
+```bash
+mvn -B clean compile -Dmaven.test.skip
+```
+
 
 ## Benchmarks & Queries
 
 The system supports testing against typical PETG data management scenarios using real-world and synthetic datasets (Energy, Traffic, and SYN).
 
-It natively supports the execution of complex temporal operations, including:
+It natively supports the execution of complex temporal operations for temporal graphs, including:
 
-* **Read Operations:** Entity-History, Snapshot, Graph Aggregate Temporal Property (GATP), and Entity Temporal Property Condition (ETPC) queries.
-
-
+* **Read Operations:** Entity-History, Snapshot, Graph Aggregate Temporal Property (GATP), Entity Temporal Property Condition (ETPC) queries and Traversal Queries.
 * **Write Operations:** Update and Append.
-
-
-* **Analytical Queries:** Reachable Area calculations for temporal road graphs.
-
-
 
 ## PETGraphDB Implementation
 
@@ -93,3 +87,9 @@ PETGraphDB consists of two main components ( Details of our concept can be found
 
 
 * **Locking Mechanism:** Extends Neo4j's entity-level locks with temporal-level shared and exclusive locks, allowing transactions that access the same entity but disjoint time ranges to execute concurrently. Deadlocks are managed using a wait-for graph detection approach.
+
+## Configure IntelliJ IDEA (Java and Scala)**
+
+* **Set project JDK:** `File -> Settings -> Project Structure -> Project -> SDK = Java 11`.
+* **Configure Scala SDK 2.12.13:** Install the Scala plugin from the IDEA marketplace, restart, and configure the global library (`File -> Settings -> Project Structure -> Global Library -> + -> Scala SDK -> 2.12.13`).
+* **Import modules** Import `temporal-storage` and `temporal-neo4j-4.4` as an IDEA module to enable direct source-level debugging across the storage engine and PETGraphDB code.
