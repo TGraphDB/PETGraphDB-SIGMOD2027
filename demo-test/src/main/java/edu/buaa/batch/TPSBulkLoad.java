@@ -18,7 +18,6 @@ import org.act.temporalProperty.vo.EntityPropertyId;
 import org.neo4j.graphdb.temporal.TimePoint;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.util.*;
 
 import static org.act.temporalProperty.TemporalPropertyStoreFactory.bulkPropertyStore;
@@ -36,7 +35,7 @@ public class TPSBulkLoad extends MilestoneBuilder {
         createDirIfNotExists(dbDir);
         System.out.println("DB dir: "+dbDir);
         // 默认开snappy
-        Options.setCTP(CompressionType.SNAPPY);
+        Options.setGlobalCompressionType(CompressionType.SNAPPY);
         this.staticDir = new File(dbDir, "static");
         this.temporalDir = new File(dbDir, "temporal");
         createDirIfNotExists(staticDir);
@@ -98,35 +97,18 @@ public class TPSBulkLoad extends MilestoneBuilder {
         System.out.println("DB shutdown.");
         Thread.sleep(20);
 
-        setMemtableSize();
-        System.out.println("TPS bulkload memtable size: " + TemporalPropertyStoreImpl.MEMTABLE_SIZE + "MB");
+        Options op = new Options().memTableSize(getMemTableSize());
+        System.out.println("TPS bulkload memtable size: " + op.memTableSize() + "MB");
 
         PeekingIterator<ImportTemporalDataTx> nodeIter = dataGen.readNodeTemporal(startTime, endTime, 10000);
-        TemporalPropertyStore ntpStore = bulkPropertyStore(new File(temporalDir, "node"));
+        TemporalPropertyStore ntpStore = bulkPropertyStore(new File(temporalDir, "node"), op);
         loadTimePoint(nodeIter, ntpStore, nTpMap);
         ntpStore.shutDown();
 
         PeekingIterator<ImportTemporalDataTx> edgeIter = dataGen.readRelTemporal(startTime, endTime, 10000);
-        TemporalPropertyStore rtpStore = bulkPropertyStore(new File(temporalDir, "relationship"));
+        TemporalPropertyStore rtpStore = bulkPropertyStore(new File(temporalDir, "relationship"), op);
         loadTimePoint(edgeIter, rtpStore, rTpMap);
         rtpStore.shutDown();
-    }
-
-    public void setMemtableSize() {
-        try {
-            Class.forName("org.act.temporalProperty.impl.TemporalPropertyStoreImpl");
-            java.lang.reflect.Field unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
-            unsafeField.setAccessible(true);
-            sun.misc.Unsafe unsafe = (sun.misc.Unsafe) unsafeField.get(null);
-
-            java.lang.reflect.Field field = TemporalPropertyStoreImpl.class.getDeclaredField("MEMTABLE_SIZE");
-            Object base = unsafe.staticFieldBase(field);
-            long offset = unsafe.staticFieldOffset(field);
-
-            unsafe.putInt(base, offset, getMemTableSize());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     protected void initEntityTp() {

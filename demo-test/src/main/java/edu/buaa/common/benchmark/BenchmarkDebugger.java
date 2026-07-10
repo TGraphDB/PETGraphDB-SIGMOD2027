@@ -2,83 +2,44 @@ package edu.buaa.common.benchmark;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SimplePropertyPreFilter;
-import com.aliyun.openservices.aliyun.log.producer.Producer;
 import com.google.common.util.concurrent.RateLimiter;
-import edu.buaa.client.MariaDBTemporalTableClient;
-import edu.buaa.client.PostgreSQLTimePointClient;
-import edu.buaa.common.RuntimeEnv;
 import edu.buaa.common.TxResultProcessor;
-import edu.buaa.common.client.AbstractSQLClient;
 import edu.buaa.common.client.DBClientProxy;
 import edu.buaa.common.client.DBProxy;
-import edu.buaa.common.server.SQLSocketServer;
 import edu.buaa.common.transaction.AbstractTransaction;
 import edu.buaa.common.utils.TemporalGraphPropertySchema;
 import edu.buaa.server.system.Neo4jServer1;
 import edu.buaa.server.system.TGraphKernelServer;
 import edu.buaa.server.system.TGraphKernelSnappyServer;
-import edu.buaa.test.management.TestManager;
 import edu.buaa.utils.Helper;
 import edu.buaa.utils.TimeTicker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 import java.util.Calendar;
 
 public class BenchmarkDebugger {
     private static final Logger log = LoggerFactory.getLogger(BenchmarkDebugger.class);
 
-    private final int serverPort = Integer.parseInt(Helper.mustEnv("DB_PORT"));
+    private final int serverPort = 8441;
     private final String dbName = "m_energy_tg4s_all";
-    private final int maxConnCnt = Integer.parseInt(Helper.mustEnv("MAX_CONN_CNT"));
+    private final int maxConnCnt = 1;
     private final int reqRate = -1;
     private final String clientClz = "edu.buaa.client.NeoTGraphExecutorClient";
     private final String serverClz = "edu.buaa.server.system.TGraphKernelSnappyServer";
     private final String dataset = "energy";
-    private final String benchmarkFileName = Helper.mustEnv("BENCHMARK_FILE");
-    private final boolean needResult = false;
-    private final String resultFile = "";
+    private final String benchmarkFileName = "D:\\tgraph\\jenkins\\b_energy_T.all_update_10000\\benchmark.json";
+    private final boolean needResult = true;
+    private final String resultFile = "D:\\tgraph\\jenkins\\b_energy_T.all_update_10000\\tg4s.result.json";
     private final String coderVersion = Helper.codeGitVersion();
-    private final long clipTimeInMilli = Long.parseLong(Helper.envOrDefault("CLIP_TIME_IN_MINUTE", "-1")) * 60 * 1000;
 
     public static void main(String[] args) throws Exception {
-        long maxMemInGB = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax() / 1024 / 1024 / 1024;
-        System.out.println("max heap mem: " + maxMemInGB + "GB");
         BenchmarkDebugger debugger = new BenchmarkDebugger();
-        Thread serverThread = new Thread(debugger::runServer);
-        serverThread.start();
+        debugger.runServer();
         Thread.sleep(12_000);
-        Thread clientThread = new Thread(() -> {
-            try {
-                debugger.runClient();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-        clientThread.start();
-        if (debugger.clipTimeInMilli > 0) {
-            Thread daemon = new Thread(() -> {
-                System.out.println("killer started.");
-                try {
-                    Thread.sleep(debugger.clipTimeInMilli);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                try {
-                    TGraphKernelServer.getDbKernelProxy().shutdown();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                System.exit(-1);
-            });
-            daemon.setDaemon(true);
-            daemon.start();
-        }
-        TGraphKernelServer.getStatisticSaver().starting();
+        debugger.runClient();
     }
 
     private void runServer(){
@@ -89,7 +50,6 @@ public class BenchmarkDebugger {
                 TGraphKernelServer.main(args);
                 break;
             case "TGS":
-            case "TG4S":
                 TGraphKernelSnappyServer.main(args);
                 break;
             case "N1":
@@ -105,14 +65,14 @@ public class BenchmarkDebugger {
         BenchmarkReader reader = null;
         TimeTicker ticker = new TimeTicker(30, 2);
         File benchmarkFile = new File(benchmarkFileName);
-        String testName = Helper.getTestName(benchmarkFile.getParentFile().getName(), dbName);
+        String testName = Helper.getTestName(-1, benchmarkFile.getParentFile().getName(), dbName, maxConnCnt, reqRate);
         int jenkinsId = Integer.parseInt(Helper.envOrDefault("JENKINS_ID", "0"));
         Helper.trace().setAppVersion(testName);
         System.out.println(testName);
         try {
             client = initClient(clientClz, "localhost", serverPort, dbName, TemporalGraphPropertySchema.load(dataset), maxConnCnt);
             client.testServerClientCompatibility();
-            post = new TxResultProcessor(testName, coderVersion);
+            post = new TxResultProcessor(testName, coderVersion, jenkinsId);
             if(needResult) {
                 post.setResult(new File(resultFile));
             }

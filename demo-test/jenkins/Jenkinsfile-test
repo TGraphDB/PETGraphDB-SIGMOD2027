@@ -2,18 +2,23 @@
 @Library('tgraph-demo-test') import main.groovy.JenkinsTGraphTest as JTT
 
 //测试
+boolean isTimeout = false
+boolean needExceptionToBreak = false
+
 pipeline {
     agent none
     parameters {
         string(name:'db_host', defaultValue: 'server')
-        string(name:'milestone', defaultValue: 'm_energy_pg_01')
-        string(name:'benchmark_name', defaultValue: 'b_energy_T.01_ehistory_100')
-        choice(name:'max_connection', choices:['1', '2', '4', '8', '12', '16'])
+        string(name:'milestone', defaultValue: 'm_energy_tgs_all')
+        string(name:'benchmark_name', defaultValue: 'b_energy_T.all_ehistory_100')
+        choice(name:'max_connection', choices:['1', '2', '4', '8', '12', '16', '32', '64', '24', '28', '20'])
         string(name:'need_result', defaultValue: 'true')
         string(name:'debug', defaultValue: 'false')
         string(name:'timeout_p', defaultValue: '360', description: 'failed if no more output within XXX seconds')
         string(name:'timeout', defaultValue: '7200', description: 'failed if not complete within XXX seconds')
+        string(name:'wait', defaultValue: '40', description: 'wait XXX seconds then start client')
     }
+
     environment {
         DB_NAME = "${params.milestone}"
         MAX_CONNECTION_CNT = "${params.max_connection}"
@@ -22,6 +27,10 @@ pipeline {
         MARK_TIME = JTT.timeNow()
         JENKINS_ID = "${BUILD_NUMBER}"
         BENCHMARK_NAME = "${params.benchmark_name}"
+
+        MARIADB_ROOT_PASSWORD = "langduhua"
+        POSTGRES_PASSWORD = "langduhua"
+//        CONFIG_NEO_AUTO_LOCK_TP_READ = "true"
     }
     stages {
         stage('Prepare') {
@@ -44,15 +53,10 @@ pipeline {
                     steps {
                         timestamps {
                             echo "${env.NODE_NAME}: server starting..."
+                            echo "${params.benchmark_name} on ${params.milestone}@${env.NODE_NAME}->${DB_HOST}(${params.max_connection})"
                             script{
                                 currentBuild.description = "${params.benchmark_name} on ${params.milestone}@${DB_HOST}(${params.max_connection})"
-                                def (DATASET, DB) = JTT.extract(params.milestone)
-                                def retcode = JTT.ctrlDB(this, 'start', DB)
-                                if(retcode==0 || retcode==2){
-                                    echo "${env.NODE_NAME}: server ready."
-                                }else{
-                                    error "Unable to start ${DB} on ${env.NODE_NAME}"
-                                }
+                                JTT.webhook(this, "test", env.BUILD_NUMBER, 'STARTED', currentBuild.result, params)
                             }
                         }
                     }
@@ -62,91 +66,137 @@ pipeline {
         stage('Benchmarking') {
             failFast true
             parallel {
-                stage('Client'){
+                //  ########################## SERVER #########################
+                stage('Server') {
+                    agent {
+//                        label 't630'
+                        label params.db_host
+                    }
+                    environment {
+                        DB_PATH = JTT.dir('DIR_WORKSPACE', env.NODE_NAME, params.milestone)
+                        MAVEN_OPTS = JTT.opt('MAVEN_OPTS', env.NODE_NAME) // -XX:+UseG1GC
+                        DEVICE = "${env.NODE_NAME}"
+                        CONFIG_MEMTABLE_SIZE = 64 //8192
+//                        CONFIG_FBUFFER_SIZE = 10
+//                        CONFIG_MAX_CACHE_SIZE = 8192
+                    }
+                    steps {
+                        script {
+                            def (DATASET, DB) = JTT.extract(params.milestone)
+                            def conf = readYaml(file: 'tests.yml')
+                            def serverImage = JTT.getCor('server_image', conf.dbinfo.key, conf.dbinfo[DB])
+                            def server = JTT.extractConf(conf.dbinfo, DB, 'class_server')
+                            def port = JTT.getCor('server_port', conf.dbinfo.key, conf.dbinfo[DB])
+                            def entrypointScript = JTT.extractConf(conf.dbinfo, DB, 'server_entrypoint')
+                            def max_connection = "${params.max_connection}"
+                            def dockerRunParamStr = "--network=host --shm-size=48g --name t${BUILD_NUMBER}_S-${params.milestone} -p " + port + ' '
+
+                            def envMap = [
+                                    "CLASS_SERVER": server,
+                                    "DB_PORT": "${port}".contains(':') ? port.split(':')[0] : port,
+                                    "DATASET": DATASET,
+                                    "DB" : DB,
+                                    "MAX_CONNECTION_CNT": max_connection,
+                                    "dn_rpc_address" : "0.0.0.0",
+                            ]
+                            if(params.debug=='true') {
+                                def addr = server=='songjinghe/tgraph-demo-test:4.4-latest' ? '*:' : ''
+                                envMap['MAVEN_OPTS'] = "${MAVEN_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=${addr}5005"
+                            }
+                            sh 'sync && echo 3 | tee /proc/sys/vm/drop_caches' // 清除所有缓存（Page Cache + Dentries + Inodes）
+                            sh 'cat /proc/meminfo | grep -E "^(Mem|Cached|Buffers)"'
+                            if(serverImage.startsWith('songjinghe/tgraph-demo-test')){
+                                withEnv(JTT.map2EnvList(envMap)) {
+                                    docker.image(serverImage).inside(dockerRunParamStr + JTT.dockerVolumeStr([:], ["${env.DB_PATH}"])) {
+                                        sleep 7
+                                        JTT.codeSyncAndCompile(this, "test,tp", false)
+                                        JTT.runTestServer(this)
+                                        echo "Server_Finish_Amitabha"
+                                    }
+                                }
+                            }else{
+                                def dbPath = JTT.extractConf(conf.dbinfo, DB, 'server_data_path')
+                                def volumeMap = [:]
+                                volumeMap.put("${env.DB_PATH}", dbPath)
+                                withEnv(JTT.map2EnvList(envMap)) {
+                                    docker.image(serverImage).inside(dockerRunParamStr + JTT.dockerVolumeStr(volumeMap, [])) {
+                                        echo "Server_To_Kill_Amitabha"
+                                        echo 'server starting...'
+                                        JTT.updateServerConf(this, DB, DATASET, max_connection)
+                                        JTT.runAndExitAfterTimeout(this, entrypointScript, DB, "${params.timeout}")
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+                }
+                //  ########################## CLIENT ########################
+                stage('Client') {
                     agent {
                         label 'client'
                     }
                     environment {
                         DIR_BENCHMARK = JTT.dir('DIR_BENCHMARK', env.NODE_NAME, params.benchmark_name)
-                        MAVEN_OPTS= JTT.opt('MAVEN_OPTS', env.NODE_NAME)
+                        MAVEN_OPTS = JTT.opt('MAVEN_OPTS', env.NODE_NAME)
                     }
                     steps {
                         script {
-                            sleep 12
-                            dir(JTT.dir('DIR_CODE', env.NODE_NAME, 'demo-test')){
-                                def conf = readYaml(file:'tests.yml')
-                                def (DATASET, DB) = JTT.extract(params.milestone)
-                                echo "${params.benchmark_name} on ${params.milestone}@${env.NODE_NAME}->${DB_HOST}(${params.max_connection})"
-                                def env1 = JTT.extendEnvList(conf.dbinfo, DB)
-                                def env2 = JTT.map2EnvList(['dataset': DATASET, 'db': DB])
-                                echo env1.toString()
-                                echo env2.toString()
-                                withEnv(env1+env2){
-                                    withEnv([
-                                        "BENCHMARK_FULL_PATH=${DIR_BENCHMARK}\\benchmark.json",
-                                        "BENCHMARK_RESULT_PATH=${DIR_BENCHMARK}\\${DB}.result.json",
-                                        "DB_HOST=${params.db_host}",
-                                        "DB_NAME=${params.milestone}",
-                                        "DEVICE=${params.db_host}"
-                                    ]){
-                                        echo "Benchmarking ${params.milestone}@${env.DB_HOST} with file ${env.BENCHMARK_FULL_PATH} NEED_RESULT: ${env.NEED_RESULT}"
-                                        bat "mvn -B exec:java -Dexec.mainClass=edu.buaa.common.benchmark.BenchmarkRunner -Dexec.cleanupDaemonThreads=false"
-                                    }
+                            def (DATASET, DB) = JTT.extract(params.milestone)
+                            def conf = readYaml(file: 'tests.yml')
+                            def client = JTT.extractConf(conf.dbinfo, DB, 'class_client')
+                            def port = JTT.getCor('server_port', conf.dbinfo.key, conf.dbinfo[DB])
+                            def serverDockerContainerName = "t${BUILD_NUMBER}_C-${params.milestone}"
+                            def dockerRunParamStr = "--network=host --name ${serverDockerContainerName} -p " + port + ' '
+
+                            def env2 = JTT.map2EnvList([
+                                    'dataset'              : DATASET,
+                                    'db'                   : DB,
+                                    "DB_NAME"              : "${params.milestone}",
+                                    "DB_TYPE"              : DB,
+                                    "DB_HOST"              : "${params.db_host}",
+                                    "DB_PORT"              : "${port}".contains(':') ? port.split(':')[0] : port,
+                                    "BENCHMARK_FULL_PATH"  : "${env.DIR_BENCHMARK}/benchmark.json",
+                                    "BENCHMARK_RESULT_PATH": "${env.DIR_BENCHMARK}/${DB}.result.json",
+                                    "VERIFY_RESULT"        : "false",
+                                    "CLASS_CLIENT"         : client,
+                                    "MAX_CONNECTION_CNT"   : "${params.max_connection}",
+                                    "REQ_RATE"             : "-1",
+                                    "DEVICE"               : "t630"
+                            ])
+                            echo env2.toString()
+                            withEnv(env2) {
+                                echo "Benchmarking ${params.milestone}@${env.DB_HOST} with file ${env.BENCHMARK_FULL_PATH} NEED_RESULT: ${env.NEED_RESULT}"
+                                def clientDockerParamStr = dockerRunParamStr + ' ' + JTT.dockerVolumeStr([:], ["${env.DIR_BENCHMARK}"])
+                                docker.image(JTT.extractConf(conf.dbinfo, DB, 'client_image')).inside(clientDockerParamStr) {
+                                    JTT.printJavaMavenVersion(this)
+                                    JTT.codeSyncAndCompile(this, "test,tp", false)
+                                    sleep params.wait
+                                    JTT.runTestClient(this)
+                                    echo "Client_Finish_Amitabha"
                                 }
+                                echo "Client Docker Exit"
                             }
                         }
-                        echo "Client_Finish_Amitabha"
                     }
                 }
+                //  ########################## WATCH DOG ########################
                 stage('Watchdog'){
                     agent {
                         label 'master'
                     }
-                    environment {
-                        TIMEOUT = "${params.timeout}"
-                        TIMEOUT_PROGRESS = "${params.timeout_p}"
-                        LOG_PIPE = "${currentBuild.rawBuild.getLogFile().getAbsolutePath()}"
-                        MARKERS = 'Client_Finish_Amitabha,Server_Finish_Amitabha'
-                    }
                     steps {
-                        echo "Watch dog start on: ${env.LOG_PIPE}"
-                        sleep 20
-                        echo "timeout: ${env.TIMEOUT}s timeout_p: ${TIMEOUT_PROGRESS}s"
-                        dir(JTT.dir('DIR_CODE', env.NODE_NAME, 'demo-test')) {
-                            bat "mvn -q exec:java -Dexec.mainClass=edu.buaa.utils.TimeoutWatchDog -Dexec.cleanupDaemonThreads=false 2>&1" // | tee -a watchdog-${params.class_client}.log
-                        }
-                    }
-                }
-                stage('Server'){
-                    agent {
-                        label params.db_host
-                    }
-                    environment {
-                        DB_PATH = JTT.dir('DIR_WORKSPACE', env.NODE_NAME, params.milestone)
-                        MAVEN_OPTS= JTT.opt('MAVEN_OPTS', env.NODE_NAME)
-                    }
-                    steps {
-                        timestamps {
-                            echo "${env.DB_PATH}@${env.NODE_NAME}"
-                        }
-                        dir(JTT.dir('DIR_CODE', env.NODE_NAME, 'demo-test')) {
-                            script{
-                                def (DATASET, DB) = JTT.extract(params.milestone)
-                                def conf = readYaml(file:'tests.yml')
-                                def server = JTT.getCor('class_server', conf.dbinfo.key, conf.dbinfo[DB] )
-                                def port = JTT.getCor('db_port', conf.dbinfo.key, conf.dbinfo[DB] )
-                                if(params.debug=='true') {
-                                    withEnv(["DATASET=${DATASET}","DB_PORT=${port}", "MAVEN_OPTS=${MAVEN_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"]){
-                                        bat "mvn -B exec:java -Dexec.mainClass=${server} -Dexec.cleanupDaemonThreads=false"
-                                        echo "Server_Finish_Amitabha"
-                                    }
-                                }else{
-                                    withEnv(["DATASET=${DATASET}","DB_PORT=${port}"]){
-                                        bat "mvn -B exec:java -Dexec.mainClass=${server} -Dexec.cleanupDaemonThreads=false"
-                                        echo "Server_Finish_Amitabha"
-                                    }
-                                }
-                            }
+                        script {
+                            def MARKERS = 'Client_Finish_Amitabha,Server_Finish_Amitabha'
+                            def LOG_PIPE = "${currentBuild.rawBuild.getLogFile().getAbsolutePath()}"
+                            echo "Watch dog start on: ${LOG_PIPE}"
+                            sleep 20
+                            echo "timeout: ${params.timeout}s timeout_p: ${params.timeout_p}s"
+                            def (ifTimeout, needThrowErr, msg) = JTT.watchdog(this, currentBuild, "${params.timeout}", "${params.timeout_p}", LOG_PIPE, MARKERS)
+                            isTimeout = ifTimeout
+                            needExceptionToBreak = needThrowErr
+                            if(needThrowErr) error(msg)
+                            else echo msg
                         }
                     }
                 }
@@ -155,13 +205,16 @@ pipeline {
     }
     post{
         always {
-            node(params.db_host) {
-                script {
-                    def (DATASET, DB) = JTT.extract(params.milestone)
-                    echo "stoping ${DB}..."
-                    def retCode = JTT.ctrlDB(this, 'stop', DB)
-                    if(retCode!=0) echo "net stop return ${retCode}"
+            script {
+                def status = currentBuild.result
+                if(status =='FAILURE'){
+                    if(isTimeout){
+                        status = 'UNSTABLE'
+                    }else if(needExceptionToBreak) {
+                        status = 'SUCCESS'
+                    }
                 }
+                JTT.webhook(this, "test", env.BUILD_NUMBER, 'COMPLETED', status, params)
             }
         }
     }

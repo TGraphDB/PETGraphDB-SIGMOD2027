@@ -19,7 +19,7 @@ public class TGBigLockingServer extends TGLockingServer{
 
         bigLock = true;
 
-        Options.setCTP(CompressionType.SNAPPY);
+        Options.setGlobalCompressionType(CompressionType.SNAPPY);
         log = LoggerFactory.getLogger(TGBigLockingServer.class);
         DBSocketServer server = new DBSocketServer(dbDir(), new TGBigLockingServer(), Integer.parseInt(Helper.mustEnv("DB_PORT")), true);
         RuntimeEnv env = RuntimeEnv.getCurrentEnv();

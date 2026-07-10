@@ -20,8 +20,8 @@ public class WDSBulkLoad extends TGSBulkLoad {
     }
 
     @Override
-    protected int tPMeta(PVal.Type type) {
-        return ValueContentType.INT.getId();
+    protected String tPMeta(PVal.Type type) {
+        return "tp.int:unknown";
     }
 
     @Override

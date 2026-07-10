@@ -284,7 +284,10 @@ public class ReachableAreaQueryTx extends AbstractTransaction {
             this.rel = str;
             this.depTime = departureTime;
             this.arrTime = arrT;
-            if(DEBUG) System.out.println("EarliestArrTime("+rel+", "+departureTime+")->"+arrT);
+            if(DEBUG) {
+                if(arrT==-1) System.out.println("EarliestArrTime("+rel+", "+departureTime+")->null");
+                System.out.println("EarliestArrTime("+rel+", "+departureTime+")->"+arrT+"(+"+(arrT-departureTime)+")");
+            }
         }
 
         public EarliestArrTime(){}

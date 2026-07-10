@@ -15,7 +15,6 @@ import org.act.temporalProperty.impl.*;
 import org.act.temporalProperty.meta.ValueContentType;
 import org.act.temporalProperty.query.TimeIntervalKey;
 import org.act.temporalProperty.query.TimePointL;
-import org.act.temporalProperty.query.range.InternalEntryRangeQueryCallBack;
 import org.act.temporalProperty.util.Slice;
 import org.act.temporalProperty.util.TemporalPropertyValueConvertor;
 import org.act.temporalProperty.vo.EntityPropertyId;
@@ -30,7 +29,7 @@ import static org.act.temporalProperty.util.TemporalPropertyValueConvertor.toSli
 
 public class TPSServer implements DBSocketServer.DBKernelProxy {
     public static void main(String[] args) {
-        Options.setCTP(CompressionType.SNAPPY);
+        Options.setGlobalCompressionType(CompressionType.SNAPPY);
 
         DBSocketServer server = new DBSocketServer(dbDir(), new TPSServer(), Integer.parseInt(Helper.mustEnv("DB_PORT")), true);
         RuntimeEnv env = RuntimeEnv.getCurrentEnv();
@@ -66,28 +65,12 @@ public class TPSServer implements DBSocketServer.DBKernelProxy {
         createDirIfNotExists(temporalDir);
         nodeStaticManager = new StaticDataManager(new File(staticDir, "node"));
         relStaticManager = new StaticDataManager(new File(staticDir, "relationship"));
-        setMemtableSize();
-        System.out.println("TPS memtable size set to " + TemporalPropertyStoreImpl.MEMTABLE_SIZE + "MB");
+        Options op = new Options().memTableSize(getMemTableSize());
+        System.out.println("TPS memtable size set to " + op.memTableSize() + "MB");
         nodeTemporalStore = TemporalPropertyStoreFactory.newPropertyStore(new File(temporalDir, "node"));
         relTemporalStore = TemporalPropertyStoreFactory.newPropertyStore(new File(temporalDir, "relationship"));
     }
 
-    public void setMemtableSize() {
-        try {
-            Class.forName("org.act.temporalProperty.impl.TemporalPropertyStoreImpl");
-            java.lang.reflect.Field unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
-            unsafeField.setAccessible(true);
-            sun.misc.Unsafe unsafe = (sun.misc.Unsafe) unsafeField.get(null);
-
-            java.lang.reflect.Field field = TemporalPropertyStoreImpl.class.getDeclaredField("MEMTABLE_SIZE");
-            Object base = unsafe.staticFieldBase(field);
-            long offset = unsafe.staticFieldOffset(field);
-
-            unsafe.putInt(base, offset, getMemTableSize());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     protected int getMemTableSize() {
         return 64;
@@ -303,7 +286,7 @@ public class TPSServer implements DBSocketServer.DBKernelProxy {
 
     public static class TPSServerMem1 extends TPSServer {
         public static void main(String[] args) {
-            Options.setCTP(CompressionType.SNAPPY);
+            Options.setGlobalCompressionType(CompressionType.SNAPPY);
 
             DBSocketServer server = new DBSocketServer(dbDir(), new TPSServerMem1(), Integer.parseInt(Helper.mustEnv("DB_PORT")), true);
             RuntimeEnv env = RuntimeEnv.getCurrentEnv();
@@ -324,7 +307,7 @@ public class TPSServer implements DBSocketServer.DBKernelProxy {
 
     public static class TPSServerMem4 extends TPSServer {
         public static void main(String[] args) {
-            Options.setCTP(CompressionType.SNAPPY);
+            Options.setGlobalCompressionType(CompressionType.SNAPPY);
 
             DBSocketServer server = new DBSocketServer(dbDir(), new TPSServerMem4(), Integer.parseInt(Helper.mustEnv("DB_PORT")), true);
             RuntimeEnv env = RuntimeEnv.getCurrentEnv();
@@ -345,7 +328,7 @@ public class TPSServer implements DBSocketServer.DBKernelProxy {
 
     public static class TPSServerMem16 extends TPSServer {
         public static void main(String[] args) {
-            Options.setCTP(CompressionType.SNAPPY);
+            Options.setGlobalCompressionType(CompressionType.SNAPPY);
 
             DBSocketServer server = new DBSocketServer(dbDir(), new TPSServerMem16(), Integer.parseInt(Helper.mustEnv("DB_PORT")), true);
             RuntimeEnv env = RuntimeEnv.getCurrentEnv();

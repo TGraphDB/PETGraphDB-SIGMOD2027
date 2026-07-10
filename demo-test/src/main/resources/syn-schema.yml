@@ -7,14 +7,344 @@ node:
   step: 1_0000
   delay: 4000
   eupdate: 0.05 #
-  name: [ ntpi1, ntpf2, ntpi3 ]
-  type: [ int, float, int ]
-  update: [ 0.2, 0.8, 0.02 ]
+  name: [ntpi1, ntpf2, ntpi3]
+  type: [int, float, int]
+  update: [0.2, 0.8, 0.02]
 rel:
   cnt: 1000_0000 #边数
   step: 1_0000 # 每条边上时态属性更新的时间间隔
   delay: 4000 # 每条边更新时间相对基准时间的延迟
   eupdate: 0.002 # 每个时间点更新的点/边比例
-  name: [ rtpi1 ] # 时态属性名
-  type: [ int ] # 时态属性类型
-  update: [ 0.5 ] # 每次更新时，属性值相对上一次值发生改变的概率
+  name: [rtpi1] # 时态属性名
+  type: [int] # 时态属性类型
+  update: [0.5] # 每次更新时，属性值相对上一次值发生改变的概率
+---
+dataset: syn-traffic
+start: 1
+end: 1_000_000
+repeat: true
+node:
+  cnt: 40_0000
+  step: 1_0000
+  delay: 4000
+  eupdate: 0.05
+  name: [ntpi1, ntpf2, ntpi3]
+  type: [int, float, int]
+  update: [0.2, 0.8, 0.02]
+rel:
+  cnt: 100_0000
+  step: 60
+  delay: 10
+  eupdate: 1.0
+  name: [travel-time, vehicle-cnt, jam-status]
+  type: [int, int, int]
+  update: [1.0, 1.0, 1.0]
+---
+# RQ2 SYN parameter-scan datasets.
+# Baseline uses Traffic-like edge attribute change rates: [0.02, 0.20, 0.80].
+# Default scan horizon: rel.step=60, end=120_000, about 2000 time points.
+dataset: SYN-BASE
+start: 1
+end: 120_000
+repeat: true
+node:
+  cnt: 1_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [ntpi1]
+  type: [int]
+  update: [0.20]
+rel:
+  cnt: 12_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [travel-time, vehicle-cnt, jam-status]
+  type: [int, int, int]
+  update: [0.02, 0.20, 0.80]
+---
+dataset: SYN-U-LOW
+start: 1
+end: 120_000
+repeat: true
+node:
+  cnt: 1_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [ntpi1]
+  type: [int]
+  update: [0.20]
+rel:
+  cnt: 12_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [travel-time, vehicle-cnt, jam-status]
+  type: [int, int, int]
+  update: [0.02, 0.02, 0.02]
+---
+dataset: SYN-U-MID
+start: 1
+end: 120_000
+repeat: true
+node:
+  cnt: 1_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [ntpi1]
+  type: [int]
+  update: [0.20]
+rel:
+  cnt: 12_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [travel-time, vehicle-cnt, jam-status]
+  type: [int, int, int]
+  update: [0.20, 0.20, 0.20]
+---
+dataset: SYN-U-HIGH
+start: 1
+end: 120_000
+repeat: true
+node:
+  cnt: 1_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [ntpi1]
+  type: [int]
+  update: [0.20]
+rel:
+  cnt: 12_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [travel-time, vehicle-cnt, jam-status]
+  type: [int, int, int]
+  update: [0.80, 0.80, 0.80]
+---
+dataset: SYN-E-005
+start: 1
+end: 120_000
+repeat: true
+node:
+  cnt: 1_0000
+  step: 60
+  delay: 10
+  eupdate: 0.05
+  name: [ntpi1]
+  type: [int]
+  update: [0.20]
+rel:
+  cnt: 12_0000
+  step: 60
+  delay: 10
+  eupdate: 0.05
+  name: [travel-time, vehicle-cnt, jam-status]
+  type: [int, int, int]
+  update: [0.02, 0.20, 0.80]
+---
+dataset: SYN-E-010
+start: 1
+end: 120_000
+repeat: true
+node:
+  cnt: 1_0000
+  step: 60
+  delay: 10
+  eupdate: 0.10
+  name: [ntpi1]
+  type: [int]
+  update: [0.20]
+rel:
+  cnt: 12_0000
+  step: 60
+  delay: 10
+  eupdate: 0.10
+  name: [travel-time, vehicle-cnt, jam-status]
+  type: [int, int, int]
+  update: [0.02, 0.20, 0.80]
+---
+dataset: SYN-E-025
+start: 1
+end: 120_000
+repeat: true
+node:
+  cnt: 1_0000
+  step: 60
+  delay: 10
+  eupdate: 0.25
+  name: [ntpi1]
+  type: [int]
+  update: [0.20]
+rel:
+  cnt: 12_0000
+  step: 60
+  delay: 10
+  eupdate: 0.25
+  name: [travel-time, vehicle-cnt, jam-status]
+  type: [int, int, int]
+  update: [0.02, 0.20, 0.80]
+---
+dataset: SYN-A-1
+start: 1
+end: 120_000
+repeat: true
+node:
+  cnt: 1_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [ntpi1]
+  type: [int]
+  update: [0.20]
+rel:
+  cnt: 12_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [travel-time]
+  type: [int]
+  update: [0.20]
+---
+dataset: SYN-A-6
+start: 1
+end: 120_000
+repeat: true
+node:
+  cnt: 1_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [ntpi1]
+  type: [int]
+  update: [0.20]
+rel:
+  cnt: 12_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [travel-time, vehicle-cnt, jam-status, rtpi4, rtpi5, rtpi6]
+  type: [int, int, int, int, int, int]
+  update: [0.02, 0.20, 0.80, 0.02, 0.20, 0.80]
+---
+dataset: SYN-A-10
+start: 1
+end: 120_000
+repeat: true
+node:
+  cnt: 1_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [ntpi1]
+  type: [int]
+  update: [0.20]
+rel:
+  cnt: 12_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name:
+    [
+      travel-time,
+      vehicle-cnt,
+      jam-status,
+      rtpi4,
+      rtpi5,
+      rtpi6,
+      rtpi7,
+      rtpi8,
+      rtpi9,
+      rtpi10,
+    ]
+  type: [int, int, int, int, int, int, int, int, int, int]
+  update: [0.02, 0.20, 0.80, 0.02, 0.20, 0.80, 0.02, 0.20, 0.80, 0.20]
+---
+dataset: SYN-T-500
+start: 1
+end: 30_000
+repeat: true
+node:
+  cnt: 1_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [ntpi1]
+  type: [int]
+  update: [0.20]
+rel:
+  cnt: 12_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [travel-time, vehicle-cnt, jam-status]
+  type: [int, int, int]
+  update: [0.02, 0.20, 0.80]
+---
+dataset: SYN-T-5000
+start: 1
+end: 300_000
+repeat: true
+node:
+  cnt: 1_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [ntpi1]
+  type: [int]
+  update: [0.20]
+rel:
+  cnt: 12_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [travel-time, vehicle-cnt, jam-status]
+  type: [int, int, int]
+  update: [0.02, 0.20, 0.80]
+---
+dataset: SYN-S-SMALL
+start: 1
+end: 60_000
+repeat: true
+node:
+  cnt: 2000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [ntpi1]
+  type: [int]
+  update: [0.20]
+rel:
+  cnt: 2_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [travel-time, vehicle-cnt, jam-status]
+  type: [int, int, int]
+  update: [0.02, 0.20, 0.80]
+---
+dataset: SYN-S-LARGE
+start: 1
+end: 60_000
+repeat: true
+node:
+  cnt: 5_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [ntpi1]
+  type: [int]
+  update: [0.20]
+rel:
+  cnt: 50_0000
+  step: 60
+  delay: 10
+  eupdate: 0.20
+  name: [travel-time, vehicle-cnt, jam-status]
+  type: [int, int, int]
+  update: [0.02, 0.20, 0.80]

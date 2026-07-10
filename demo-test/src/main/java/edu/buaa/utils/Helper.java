@@ -76,6 +76,10 @@ public class Helper {
                 c.get(Calendar.HOUR_OF_DAY)+":"+c.get(Calendar.MINUTE);
     }
 
+    public static String getTestName(int jenkinsId, String benchmarkFileName, String dbName, int maxConnCnt, int reqRate){
+        return getTestName(benchmarkFileName, dbName)+"@J"+jenkinsId+"*"+maxConnCnt+"("+reqRate+")";
+    }
+
     public static Producer getLogger(){
         ProducerConfig pConf = new ProducerConfig();
         pConf.setIoThreadCount( 10 ); // one thread to upload

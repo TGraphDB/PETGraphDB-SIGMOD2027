@@ -5,6 +5,6 @@ import org.act.temporalProperty.impl.Options;
 
 public class TGSBulkLoad extends TGBulkLoad{
     public TGSBulkLoad() throws Exception {
-        Options.setCTP(CompressionType.SNAPPY);
+        Options.setGlobalCompressionType(CompressionType.SNAPPY);
     }
 }

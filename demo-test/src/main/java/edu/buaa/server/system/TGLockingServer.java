@@ -8,7 +8,6 @@ import edu.buaa.common.utils.PFieldList;
 import edu.buaa.common.utils.PVal;
 import edu.buaa.utils.Helper;
 import edu.buaa.utils.Triple;
-import org.act.temporalProperty.query.TimePointL;
 import org.act.temporalProperty.impl.CompressionType;
 import org.act.temporalProperty.impl.Options;
 import org.neo4j.dbms.api.DatabaseManagementService;
@@ -18,7 +17,6 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.temporal.TimeIntervalRangeQuery;
 import org.neo4j.graphdb.temporal.TimePoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,8 +26,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicIntegerArray;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.concurrent.locks.LockSupport;
 
@@ -50,7 +46,7 @@ public class TGLockingServer implements DBSocketServer.DBKernelProxy {
 
 
     public static void main(String[] args) {
-        Options.setCTP(CompressionType.SNAPPY);
+        Options.setGlobalCompressionType(CompressionType.SNAPPY);
         log = LoggerFactory.getLogger(TGLockingServer.class);
         DBSocketServer server = new DBSocketServer(dbDir(), new TGLockingServer(), Integer.parseInt(Helper.mustEnv("DB_PORT")), true);
         RuntimeEnv env = RuntimeEnv.getCurrentEnv();

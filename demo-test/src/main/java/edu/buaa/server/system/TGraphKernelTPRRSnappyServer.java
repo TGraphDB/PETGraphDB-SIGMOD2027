@@ -13,7 +13,7 @@ public class TGraphKernelTPRRSnappyServer extends TGraphKernelServer {
         apReadLock = false;
         tpReadLock = true;
         // 开启snappy压缩
-        Options.setCTP(CompressionType.SNAPPY);
+        Options.setGlobalCompressionType(CompressionType.SNAPPY);
     }
 
     public static void main(String[] args) {

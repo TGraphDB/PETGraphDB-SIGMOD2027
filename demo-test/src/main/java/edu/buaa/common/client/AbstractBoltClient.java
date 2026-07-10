@@ -102,7 +102,7 @@ public abstract class AbstractBoltClient implements DBClientProxy {
         AbstractTransaction.Result executeQuery(Session conn) throws Exception;
     }
 
-    protected static class QueryReq implements RequestDispatcher.RequestWs {
+    protected class QueryReq implements RequestDispatcher.RequestWs {
         private final TimeMonitor timeMonitor = new TimeMonitor();
         protected final AbstractTransaction.Metrics metrics = new AbstractTransaction.Metrics();
         protected final BlockingQueue<Session> connectionPool;
@@ -118,8 +118,9 @@ public abstract class AbstractBoltClient implements DBClientProxy {
 
         @Override
         public ServerResponse call() throws Exception {
+            ServerResponse response = new ServerResponse();
+            Session conn = connectionPool.take();
             try {
-                Session conn = connectionPool.take();
                 timeMonitor.mark("Wait in queue", "query");
                 metrics.setConnId(connIdMap.get(conn));
                 metrics.setWaitTime(Math.toIntExact(timeMonitor.duration("Wait in queue")));
@@ -130,22 +131,39 @@ public abstract class AbstractBoltClient implements DBClientProxy {
                 connectionPool.put(conn);
                 metrics.setExeTime(Math.toIntExact(timeMonitor.duration("query")));
                 metrics.setTxSuccess(true);
-                ServerResponse response = new ServerResponse();
                 response.setMetrics(metrics);
                 response.setResult(result);
                 return response;
             }catch (TransactionFailedException e){
                 timeMonitor.end("query");
                 metrics.setExeTime(Math.toIntExact(timeMonitor.duration("query")));
-                ServerResponse response = new ServerResponse();
                 metrics.setTxSuccess(false);
                 metrics.setErrMsg(e);
                 response.setMetrics(metrics);
                 response.setResult(null);
                 return response;
-            } catch (Exception e) {
+            } catch (org.neo4j.driver.exceptions.TransientException e){
+                if(e.getMessage().contains("Transaction was asked to abort, most likely because it was executing longer than time specified by")) {
+                    service.signalShutdown();
+                    throw new RuntimeException("[Server close connection]");
+                } else {
+                    timeMonitor.end("query");
+                    metrics.setExeTime(Math.toIntExact(timeMonitor.duration("query")));
+                    metrics.setErrMsg(e);
+                    response.setResult(null);
+                    return response;
+                }
+            } catch (org.neo4j.driver.exceptions.ServiceUnavailableException e){
+                if(e.getMessage().startsWith("Unable to connect to")){
+                    service.signalShutdown();
+                }
                 e.printStackTrace();
                 throw e;
+            }catch(Throwable e) {
+                e.printStackTrace();
+                throw e;
+            } finally {
+                connectionPool.put(conn);
             }
         }
     }

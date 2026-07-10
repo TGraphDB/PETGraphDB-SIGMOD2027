@@ -37,6 +37,15 @@ public abstract class TemporalGraphDataGenerator implements SQLMilestoneBuilder.
 
     abstract public Iterator<ImportStaticDataTx> readNetwork(int size) throws IOException;
 
+/**
+ * 抽象方法，用于读取节点时间范围内的数据
+ *
+ * @param startDay 开始日期，格式为字符串
+ * @param endDay 结束日期，格式为字符串
+ * @param linePerTx 每个事务包含的数据行数
+ * @return 返回一个PeekingIterator迭代器，用于遍历ImportTemporalDataTx类型的数据
+ * @throws IOException 可能抛出IO异常，如文件读取错误等
+ */
     abstract public PeekingIterator<ImportTemporalDataTx> readNodeTemporal(String startDay, String endDay, int linePerTx) throws IOException;
 
     public abstract Iterator<ImportTemporalDataTx> readNodeTemporal(String beginTime, int txSize) throws IOException;

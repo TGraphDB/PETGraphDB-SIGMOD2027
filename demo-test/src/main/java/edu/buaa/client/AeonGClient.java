@@ -10,13 +10,9 @@ import edu.buaa.common.utils.PVal;
 import edu.buaa.utils.Helper;
 import edu.buaa.utils.Pair;
 import edu.buaa.utils.Triple;
-import org.neo4j.cypher.internal.expressions.In;
 import org.neo4j.driver.*;
 import org.neo4j.driver.types.Entity;
 import org.neo4j.driver.types.Node;
-import org.neo4j.driver.types.Relationship;
-import org.neo4j.driver.types.Type;
-import scala.reflect.internal.Trees;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
@@ -60,7 +56,7 @@ public class AeonGClient extends AbstractBoltClient {
             case tx_query_road_by_temporal_condition:
                 return this.submit(execute((EntityTemporalConditionTx) tx));
             case tx_query_reachable_area:
-//                return this.submit(execute((ReachableAreaQueryTx) tx));
+                return this.submit(execute((ReachableAreaQueryTx) tx));
             case tx_update_temporal_data:
                 return this.submit(s->{
                     throw new TransactionFailedException();
@@ -293,6 +289,7 @@ public class AeonGClient extends AbstractBoltClient {
                                     "SET n += $props",
                             NodeLabel
                     );
+                    System.out.println(nodeCypher);
                     session.run(nodeCypher, row).consume();
                 }
 //                String nodeCypher = String.format(
@@ -727,15 +724,22 @@ public class AeonGClient extends AbstractBoltClient {
     private Req execute(ReachableAreaQueryTx tx){
         ReachableAreaQueryTx.DEBUG = true;
         return session -> {
+
             List<Pair<Integer, String>> answers = new ArrayList<>();
             String startNodeUid=tx.getStartNode();
             long startNodeId=findNodeIdByUid(startNodeUid,session);
             ReachableAreaAeonG algo = new ReachableAreaAeonG(startNodeId, tx.getDepartureTime(), tx.getTravelTime(),session,startNodeUid);
 
+            if(tx.getResult() instanceof ReachableAreaQueryTx.Result){
+                ReachableAreaQueryTx.StatResult result = ((ReachableAreaQueryTx.Result) tx.getResult()).getStatResult();
+                if(ReachableAreaQueryTx.DEBUG) algo.setCtrlMeta(result);
+            }
+
             for (ReachableAreaQueryTx.TemporalDijkstraAlgo.NodeCross nodeCross : algo.run()) {
                 String u_sid = findUidByNodeId(nodeCross.getId(),session);
                 answers.add(Pair.of(nodeCross.getArriveTime(), u_sid));
             }
+            algo.info();
             ReachableAreaQueryTx.Result result = new ReachableAreaQueryTx.Result();
 //            result.setNodeArriveTime(answers);
 //            result.setInnerResults(algo.getInnerResults());
@@ -817,6 +821,13 @@ public class AeonGClient extends AbstractBoltClient {
     {
         private  Session session;
         private String startNodeUid;
+        private int totalCntNodeOutRel = Integer.MAX_VALUE;
+        private int totalCntArrTime = Integer.MAX_VALUE;
+
+        private int cntNodeOutRel = 0;
+        private int cntArrTime = 0;
+
+
         public ReachableAreaAeonG(long startId, int startTime, int travelTime,Session session,String startNodeUid) {
             super(startId, startTime, travelTime, true);
             this.session=session;
@@ -824,7 +835,10 @@ public class AeonGClient extends AbstractBoltClient {
         }
         @Override
         protected int getEarliestArriveTime(Long roadId, int departureTime) throws UnsupportedOperationException {
-//            System.out.println("getEarliestArriveTime !");
+            if(ReachableAreaQueryTx.DEBUG) {
+                if(this.cntArrTime > this.totalCntArrTime) throw new UnsupportedOperationException();
+                this.cntArrTime++;
+            }
             int earT = Integer.MAX_VALUE;
             int depatureTimeT=VtoT(departureTime);
             int end=VtoT(this.endTime);
@@ -834,6 +848,7 @@ public class AeonGClient extends AbstractBoltClient {
             String cypher=String.format("MATCH (n:%s{u_sid:$roadUid}) TT FROM "+depatureTimeT+" TO " +end+" RETURN n ",EdgeNodeLabel);
 //            System.out.println(cypher+"  running ");
             var result=session.run(cypher,params);
+            int cnt = 0;
             while (result.hasNext()) {
                 var record = result.next();
                 Node node = record.get("n").asNode();
@@ -844,21 +859,47 @@ public class AeonGClient extends AbstractBoltClient {
                 }
                 int st=Math.max(depatureTimeT,triple.getLeft());
                 int travel_time=(int)triple.getRight().getVal();
-                int arr_t=st+travel_time*50;
+                double arr_t=st+travel_time*k;
+//                int arr_t=st+travel_time*30;
 //                System.out.println("arr_t: "+arr_t);
-                if(arr_t<earT) earT=arr_t;
+                if(arr_t<earT) earT= (int) Math.floor(arr_t);
+                cnt++;
             }
             if(earT<Integer.MAX_VALUE)
             {
                 int res=TtoV(earT);
 //                System.out.println(this.startNodeUid+" Road: "+roadUid+" earT: "+res+"   depature: "+depatureTimeT+"  endTime: "+end);
-                return res;
+                if(ReachableAreaQueryTx.DEBUG) {
+                    return randomRoll(cnt, departureTime, this.endTime, false);
+                }else{
+                    return res;
+                }
+//                System.out.println(this.startNodeUid+" Road: "+roadUid+" earT: "+res+"   depatureT: "+depatureTimeT+" depatureT: "+departureTime+"  endTime: "+end);
+//                return res;
+//                System.out.println(this.startNodeUid+" Road: "+roadUid+" earT: "+res+"   depatureT: "+depatureTimeT+" depatureT: "+departureTime+"  endTime: "+end);
+//                return res;
             }
             else throw new UnsupportedOperationException();
         }
 
+        private int randomRoll(int historyCnt, int departureTime, int endTime, boolean canFinish) {
+            int delta = endTime - departureTime;
+            double r = Math.random();
+            if(canFinish) {
+                if (r > 0.5 && delta < 10) return endTime + 1;
+                else return (int) (r * delta) + departureTime;
+            }else{
+                if(r > 0.5) r *= 0.7;
+                return (int) (r * delta) + departureTime;
+            }
+        }
+
         @Override
         protected Iterable<Long> getAllOutRoads(long nodeId) {
+            if(ReachableAreaQueryTx.DEBUG) {
+                if(this.cntNodeOutRel > this.totalCntNodeOutRel) return Collections.emptyList();
+                this.cntNodeOutRel++;
+            }
             List<Long> OutRoadIdList = new ArrayList<>();
             Map<String, Object> params = new HashMap<>();
             String nodeuid=findUidByNodeId(nodeId,session);
@@ -926,5 +967,15 @@ public class AeonGClient extends AbstractBoltClient {
             return res;
         }
 
+        public void setCtrlMeta(ReachableAreaQueryTx.StatResult result) {
+            this.totalCntNodeOutRel = result.getGetAllOutRelCnt();
+            this.totalCntArrTime = result.getGetArrTimeCnt();
+        }
+
+        public void info() {
+            System.out.println("META (actual/ctrl): " +
+                    "CntNodeOutRel("+cntNodeOutRel+"/"+totalCntNodeOutRel+"), " +
+                    "CntArrTime("+cntArrTime+"/"+totalCntArrTime+")");
+        }
     }
 }

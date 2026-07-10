@@ -41,6 +41,7 @@ public class AionClient extends AbstractBoltClient {
     private double k;
     private double b;
     private boolean clientok=false;
+    private boolean lineok=false;
 
     @Override
     public ListenableFuture<ServerResponse> execute(AbstractTransaction tx) throws InterruptedException {
@@ -139,8 +140,22 @@ public class AionClient extends AbstractBoltClient {
     /**
      * 用于client启动时读取transaction_time和valid_time的取值范围
      */
-    private void readVandT(Session session)
+    private void readVandT(Session session) throws Exception
     {
+        int retrycount=0;
+        while(!clientok&&retrycount<20)
+        {
+            try {
+                session.run("MATCH (n:TEST_META {uuid: 0}) RETURN n;").consume();
+                clientok=true;
+                break;
+            }catch (ClientException e){
+                retrycount++;
+                System.out.println("retry times: "+retrycount);
+                Thread.sleep(10000);
+                if(retrycount>=20)throw e;
+            }
+        }
         System.out.println("Reading TEST_META...");
         var result =session.run("MATCH (n:TEST_META {uuid: 0}) RETURN n;");
         while (result.hasNext())
@@ -539,11 +554,11 @@ public class AionClient extends AbstractBoltClient {
                         " startTimestamp,endTimestamp,nodeId,properties WHERE nodeId=targetId RETURN startTimestamp,endTimestamp,properties",NodeLabel);
 //                System.out.println(cypher);
                 int retrycount=0;
-                while(!clientok&&retrycount<20)
+                while(!lineok&&retrycount<20)
                 {
                     try {
                         session.run(cypher,params).consume();
-                        clientok=true;
+                        lineok=true;
                         break;
                     }catch (ClientException e){
                         retrycount++;

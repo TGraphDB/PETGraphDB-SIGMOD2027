@@ -41,7 +41,7 @@ public class WorkloadStatisticServer implements DBSocketServer.DBKernelProxy {
     private static void setDefaultArgs() {
         dbKernelProxy = new WorkloadStatisticServer();
         log = LoggerFactory.getLogger(WorkloadStatisticServer.class);
-        Options.setCTP(CompressionType.SNAPPY);
+        Options.setGlobalCompressionType(CompressionType.SNAPPY);
     }
 
     protected static void startServer() {

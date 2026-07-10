@@ -9,7 +9,7 @@ public class TGBNoLogServer extends TGraphKernelSnappyServer{
 
     public static void main(String[] args) {
 
-        Options.setCTP(CompressionType.SNAPPY);
+        Options.setGlobalCompressionType(CompressionType.SNAPPY);
         InternalTransactionCommitProcess.Debug.mockLog = true;
 
         dbKernelProxy = new TGraphKernelServer();

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 public class RequestDispatcher {
+    private volatile boolean shutdown = false;
     private final int parallelCnt;
     List<ClientThread> threadList = new LinkedList<>();
 
@@ -38,10 +39,19 @@ public class RequestDispatcher {
         return ft;
     }
 
-    public void awaitClose() throws InterruptedException {
+    public boolean isShutdown(){
+        return shutdown;
+    }
+
+    public void signalShutdown() {
+        shutdown = true;
         for(int i=0;i<parallelCnt;i++){
             threadList.get(i).shutdown();
         }
+    }
+
+    public void awaitClose() throws InterruptedException {
+        signalShutdown();
         for(int i=0;i<parallelCnt;i++){
             threadList.get(i).join();
         }

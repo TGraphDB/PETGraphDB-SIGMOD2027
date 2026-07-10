@@ -37,7 +37,6 @@ public class ClientThread extends Thread {
             }
         }catch (Exception e){
             log.error("ERROR process req.", e);
-            Helper.trace().notifyError(e);
         }finally {
             tm.end("Service");
             long totalTime = tm.duration("Service");

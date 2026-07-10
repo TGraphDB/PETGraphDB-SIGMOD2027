@@ -36,8 +36,6 @@ import java.util.concurrent.TimeUnit;
 import static edu.buaa.server.system.TGraphKernelServer.LABEL;
 import static edu.buaa.server.system.TGraphKernelServer.RELATIONSHIP_TYPE;
 import static org.act.temporalProperty.TemporalPropertyStoreFactory.bulkPropertyStore;
-import static org.act.temporalProperty.util.TemporalPropertyValueConvertor.CLASS_NAME_LENGTH_SEPERATOR;
-import static org.act.temporalProperty.util.TemporalPropertyValueConvertor.TemporalPropertyMarker;
 
 /**
  * 只是从dev-sjh的代码抄过来的，没测试过，理解也有限，但可以编译和运行
@@ -53,7 +51,8 @@ public class TGBulkLoad extends MilestoneBuilder{
         super();
         this.dbDir = new File(Helper.mustEnv("DB_PATH"));
         System.out.println("DB dir: "+dbDir);
-        Options.setCTP(CompressionType.NONE);
+        Options.setGlobalCompressionType(CompressionType.NONE);
+        dataGen.setSectionEnable(false);
     }
 
     @Override
@@ -122,12 +121,14 @@ public class TGBulkLoad extends MilestoneBuilder{
 
         File dir = getDefaultDatabaseLayout().databaseDirectory().toFile();
         PeekingIterator<ImportTemporalDataTx> nodeIter = dataGen.readNodeTemporal(startTime, endTime, 10000);
-        TemporalPropertyStore ntpStore = bulkPropertyStore(new File(dir, "temporal.node.properties"));
+        TemporalPropertyStore ntpStore = bulkPropertyStore(
+                new File(dir, "temporal.node.properties"), new Options().memTableSize(256).fBufferSize(128));
         loadTimePoint(nodeIter, ntpStore);
         ntpStore.shutDown();
 
         PeekingIterator<ImportTemporalDataTx> edgeIter = dataGen.readRelTemporal(startTime, endTime, 10000);
-        TemporalPropertyStore rtpStore = bulkPropertyStore(new File(dir, "temporal.relationship.properties"));
+        TemporalPropertyStore rtpStore = bulkPropertyStore(
+                new File(dir, "temporal.relationship.properties"), new Options().memTableSize(256).fBufferSize(128));
         loadTimePoint(edgeIter, rtpStore);
         rtpStore.shutDown();
     }
@@ -191,9 +192,9 @@ public class TGBulkLoad extends MilestoneBuilder{
         }
     }
 
-    protected int tPMeta(PVal.Type type) {
+    protected String tPMeta(PVal.Type type) {
         ValueContentType valueType = type== PVal.Type.INT?ValueContentType.INT:ValueContentType.FLOAT;
-        return valueType.getId();
+        return "tp." + valueType.name().toLowerCase() + ":unknown";
     }
 
     private void loadTimePoint(PeekingIterator<ImportTemporalDataTx> it, TemporalPropertyStore tpStore) {

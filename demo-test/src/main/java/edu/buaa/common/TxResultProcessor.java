@@ -31,6 +31,7 @@ public class TxResultProcessor {
     private final ExecutorService service;
     private final String testName;
     private final String clientVersion;
+    private final int jenkinsId;
     private final SimplePropertyPreFilter pf;
     private final ThreadPoolExecutor exe;
     private final TimeTicker ticker;
@@ -41,9 +42,10 @@ public class TxResultProcessor {
     private TestManager testDB;
 
 
-    public TxResultProcessor(String testName, String clientVersion){
+    public TxResultProcessor(String testName, String clientVersion, int jenkinsId){
         this.testName = testName;
         this.clientVersion = clientVersion;
+        this.jenkinsId = jenkinsId;
         pf = new SimplePropertyPreFilter();
         pf.getExcludes().addAll(Arrays.asList("txType", "metrics", "result",
                 "crosses", "roads", "data" // for traffic dataset
@@ -90,9 +92,10 @@ public class TxResultProcessor {
         JSONObject mObj = mergeMetrics(response.getMetrics(), tx.getMetrics());
         LogItem log = new LogItem();
         log.PushBack("type", tx.getTxType().name());
+        log.PushBack("jid", String.valueOf(jenkinsId));
         log.PushBack("params", JSON.toJSONString(tx, pf));
         add2LogItem(log, mObj);
-        if(logger != null) logger.send("tgraph-demo-test", "tgraph-log", testName, clientVersion, log);
+        logger.send("tgraph-demo-test", "tgraph-log", testName, clientVersion, log);
     }
 
     private JSONObject mergeMetrics(Metrics mFromClient, Metrics mFromTx) {
@@ -123,16 +126,16 @@ public class TxResultProcessor {
     public void close() throws IOException, InterruptedException{
         service.shutdown();
         int remains = exe.getQueue().size();
-        System.out.printf("Post processor closed but will carryout remaining %s tasks%n", remains);
+        log.debug("Post processor closed but will carryout remaining {} tasks", remains);
         long mark = System.currentTimeMillis();
         while (!service.awaitTermination(10, TimeUnit.SECONDS)) {
             long completeCnt = exe.getCompletedTaskCount();
             remains = exe.getQueue().size();
-            System.out.printf("%s/%s task completed.%n", completeCnt, completeCnt + remains);
+            log.debug("{}/{} task completed.", completeCnt, completeCnt + remains);
         }
-        System.out.printf("Post processor exit after wait %s seconds. send %s lines.", (System.currentTimeMillis()-mark)/1000, exe.getCompletedTaskCount());
+        log.debug("Post processor exit after wait {} seconds. send {} lines.", (System.currentTimeMillis()-mark)/1000, exe.getCompletedTaskCount());
         if(writer!=null) writer.close();
-//        if(testDB!=null) testDB.close();
+        if(testDB!=null) testDB.close();
     }
 
     public void awaitDone(int timeout, TimeUnit timeUnit) throws IOException, InterruptedException{
@@ -157,24 +160,26 @@ public class TxResultProcessor {
 //                    log.debug("result: {}", result.getResult());
                     writer.write(tx);
                 }
-//                if(testDB!=null){
-//                    testDB.addCase(tx, writer!=null ? result.getResult() : null, result.getMetrics());
-//                }
+                if(testDB!=null){
+                    testDB.addCase(tx, writer!=null ? result.getResult() : null, result.getMetrics());
+                }
                 if(ticker.shouldTick(0)){
                     long completeCnt = exe.getCompletedTaskCount();
                     int remains = exe.getQueue().size();
-                    log.info("Post-process: complete {}/{} task.", completeCnt, completeCnt + remains);
+                    log.debug("Post-process: complete {}/{} task.", completeCnt, completeCnt + remains);
                 }
-            } catch (ProducerException | InterruptedException | IOException | ExecutionException e) {
+            } catch (ProducerException | InterruptedException | IOException | ExecutionException | SQLException e) {
                 log.error(JSON.toJSONString(tx, pf), e);
-                Helper.trace().notifyError(e);
             }
         }
 
         @Override
         public void onFailure(Throwable t) {
-            t.printStackTrace();
-            Helper.trace().notifyError(t);
+            if(t instanceof RuntimeException && "[Got null. Server close connection]".equals(t.getMessage())){
+                System.out.println("[Got null. Server close connection] for "+JSON.toJSONString(tx, pf));
+            }else {
+                t.printStackTrace();
+            }
         }
     }
 

@@ -55,8 +55,8 @@ public class BenchmarkRunner {
         BenchmarkReader reader = null;
         TimeTicker ticker = new TimeTicker(30, 2);
         File benchmarkFile = new File(benchmarkFileName);
-        String testName = Helper.getTestName(benchmarkFile.getParentFile().getName(), dbName);
-        int ENV_JENKINS_ID = Integer.parseInt(Helper.envOrDefault("JENKINS_ID", "-1"));
+        int jenkinsId = Integer.parseInt(Helper.envOrDefault("JENKINS_ID", "0"));
+        String testName = Helper.getTestName(jenkinsId, benchmarkFile.getParentFile().getName(), dbName, maxConnCnt, reqRate);
         String ENV_DEVICE = Helper.envOrDefault("DEVICE", RuntimeEnv.hostName());
         Helper.trace().setAppVersion(testName);
         System.out.println(testName);
@@ -64,7 +64,7 @@ public class BenchmarkRunner {
         try {
             client = initClient(clientClz, serverHost, serverPort, dbName, TemporalGraphPropertySchema.load(dataset), maxConnCnt);
             client.testServerClientCompatibility();
-            post = new TxResultProcessor(testName, coderVersion);
+            post = new TxResultProcessor(testName, coderVersion, jenkinsId);
             post.setLogger(logger);
 //            post.setTestDB(testM);
             if(needResult) {
@@ -86,14 +86,14 @@ public class BenchmarkRunner {
 //                }else{
                     post.process(client.execute(tx), tx);
 //                }
-                if(ticker.shouldTick(0)) System.out.println(JSON.toJSONString(tx, pf));
+                if(ticker.shouldTick(0)) log.debug(JSON.toJSONString(tx, pf));
             }
 //            System.exit(0);
 //        } catch (ConnectException e){
 //            System.exit(3);
         }catch (Exception e) {
             log.error("ERROR sending request", e);
-            e.printStackTrace();
+            Helper.trace().notifyError(e);
             throw new RuntimeException(e);
         }finally {
             if(reader!=null) reader.close();
