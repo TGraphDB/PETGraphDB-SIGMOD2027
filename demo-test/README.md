@@ -84,7 +84,7 @@ Evaluation protocols aligned with the paper:
 - **Space evaluation**: full dataset loaded and measured by disk footprint excluding transaction logs.
 
 # Code Architecture
-`src/main/java/edu/buaa` contains most of the code that implemented the applications and performed the test. some of the important folders are:
+`src/main/java/` contains most of the code that implemented the applications and performed the test. some of the important folders are:
 - `batch`: import datasets into applications.
 - `client` & `server`: application database adapters.
 - `dataset`: dataset adapters.
