@@ -1,4 +1,4 @@
-# PETGraphDB (VLDB 2026)
+# PETGraphDB
 
 ## Description
 
@@ -81,7 +81,7 @@ It natively supports the execution of complex temporal operations, including:
 
 ## PETGraphDB Implementation
 
-PETGraphDB consists of two main components ( Details of our concept can be found in our [paper](https://arxiv.org/abs/2512.05417) ): the query language processor and the database kernel. The database kernel provides comprehensive temporal graph data management and transactional capabilities accessible through Java APIs. The query language processor handles TCypher queries , accessing the database kernel for execution.
+PETGraphDB consists of two main components ( Details of our concept can be found in our paper ): the query language processor and the database kernel. The database kernel provides comprehensive temporal graph data management and transactional capabilities accessible through Java APIs. The query language processor handles TCypher queries , accessing the database kernel for execution.
 
 * **Storage Engine (TIM-Tree):** Data items are partitioned and ordered first by property, and subsequently by time, effectively addressing data access skew. The engine employs an "export/merge" batch write process, buffering updates in a Global Memtable before periodically merging them with on-disk SSTables.
 
