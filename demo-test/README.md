@@ -1,4 +1,4 @@
-# PETGraphDB VLDB 2026
+# PETGraphDB
 > PETGraphDB is a database system designed for managing temporal graph data. 
 
 ## Purpose of `demo-test`
